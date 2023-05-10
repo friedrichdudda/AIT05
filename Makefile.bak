@@ -63,18 +63,6 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# Enables DTLS-secured CoAP messaging
-GCOAP_ENABLE_DTLS ?= 1
-ifeq (1,$(GCOAP_ENABLE_DTLS))
-  # Required by DTLS. Currently, only tinyDTLS is supported by sock_dtls.
-  USEPKG += tinydtls
-  USEMODULE += sock_dtls
-  USEMODULE += tinydtls_sock_dtls
-  USEMODULE += gcoap_dtls
-  # tinydtls needs crypto secure PRNG
-  USEMODULE += prng_sha1prng
-endif
-
 # Instead of simulating an Ethernet connection, we can also simulate
 # an IEEE 802.15.4 radio using ZEP
 USE_ZEP ?= 0
@@ -108,4 +96,3 @@ ifndef CONFIG_KCONFIG_MODULE_GCOAP
 GCOAP_RESEND_BUFS_MAX ?= 2
 CFLAGS += -DCONFIG_GCOAP_RESEND_BUFS_MAX=$(GCOAP_RESEND_BUFS_MAX)
 endif
-CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(2*THREAD_STACKSIZE_LARGE\)

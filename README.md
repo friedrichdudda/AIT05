@@ -1,23 +1,97 @@
 ## About
 
-This is an additional gcoap example, but with enabled DTLS. It only provides a
-custom configured makefile, while the code is a symlink to the original gcoap
-example. Therefore, the infos and usage notes of the other README also applies
-to this example.
+This application provides command line access to gcoap, a high-level API for
+CoAP messaging. See the [CoAP spec][1] for background, and the
+Modules>Networking>CoAP topic in the source documentation for detailed usage
+instructions and implementation notes.
 
-Please note, that with DTLS the default port is 5684 and not 5683, thus CoAP
-requests must be sent to this port.
+We support two setup options for this example:
 
-Since DTLS has higher memory and ROM requirements, more boards are blacklisted
-for this example compared to the non-DTLS gcoap example.
+### Native networking
 
-### CoAP query with DTLS enabled
+Build with the standard `Makefile`. Follow the setup [instructions][2] for
+the gnrc_networking example.
 
-With DTLS enabled the server can be queried
-using the default DTLS pre-shared key from the `tinydtls_keys.h` file.
+### SLIP-based border router
 
-    ./coap-client coaps://[fe80::1843:8eff:fe40:4eaa%tap0]/.well-known/core -k "secretPSK" -u "Client_identity"
+Build with `Makefile.slip`. Follow the setup instructions in README-slip.md,
+which are based on the [SLIP instructions][3] for the gnrc_border_router
+example. We also plan to provide or reference the ethos/UHCP instructions,
+but we don't have it working yet.
+
+
+## Example Use
+
+This example uses gcoap as a server on RIOT native. Then we send a request
+from a libcoap example client on the Linux host.
+
+### Verify setup from RIOT terminal
+
+    > coap info
+
+Expected response:
+
+    CoAP server is listening on port 5683
+     CLI requests sent: 0
+    CoAP open requests: 0
+
+### Query from libcoap example client
+
+gcoap does not provide any output to the CoAP terminal when it handles a
+request. We recommend use of Wireshark to see the request and response. You
+also can add some debug output in the endpoint function callback.
+
+    ./coap-client -N -m get -p 5683 coap://[fe80::1843:8eff:fe40:4eaa%tap0]/.well-known/core
 
 Example response:
 
-    </cli/stats>;ct=0;rt="count";obs,</riot/board>
+    v:1 t:NON c:GET i:0daa {} [ ]
+    </cli/stats>
+
+The response shows the endpoint registered by the gcoap CLI example.
+
+### Send query to libcoap example server
+
+Start the libcoap example server with the command below.
+
+    ./coap-server
+
+\
+Below are some example queries to enter into the RIOT CLI. Ports can be omitted.
+The port defaults to 5683 for the `gcoap` and to 5684 for the `gcoap_dtls` example.
+
+- For IPv6 setup (network interface can be omitted)
+
+    > coap get [fe80::d8b8:65ff:feee:121b%6]:5683 /.well-known/core
+
+- For IPv4 setup
+
+    > coap get 192.168.2.135:5683 /.well-known/core
+
+- When including the module `sock_dns` for domain resolution
+
+    > coap get example.com:5683 /.well-known/core
+
+CLI output:
+
+    gcoap_cli: sending msg ID 743, 75 bytes
+    > gcoap: response Success, code 2.05, 105 bytes
+    </>;title="General Info";ct=0,</time>;if="clock";rt="Ticks";title="Internal Clock";ct=0;obs,</async>;ct=0
+
+
+## Other available CoAP implementations and applications
+
+RIOT also provides package imports and test applications for other CoAP
+implementations:
+
+* [Nanocoap](../nanocoap_server): a very lightweight CoAP server based on the
+  [nanocoap library](https://github.com/kaspar030/sock/tree/master/nanocoap)
+  implementation
+
+* [Microcoap](../../tests/pkg/microcoap): another lightweight CoAP server based
+  on the [microcoap library](https://github.com/1248/microcoap) implementation
+
+
+[1]: https://tools.ietf.org/html/rfc7252    "CoAP spec"
+[2]: https://github.com/RIOT-OS/RIOT/tree/master/examples/gnrc_networking    "instructions"
+[3]: https://github.com/RIOT-OS/RIOT/tree/master/examples/gnrc_border_router    "SLIP instructions"
