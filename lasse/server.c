@@ -253,7 +253,6 @@ void server_init(void)
     }
 
     saul_reg_t *dev = saul_reg_find_name(saul_reg->name);
-    printf("LOOOOOOOOOOL: %s\n", dev->name);
 
     // coap get [fe80::e8e4:4534:4649:f34b]:5683 /.well-known/core
 
