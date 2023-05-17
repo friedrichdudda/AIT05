@@ -1,0 +1,24 @@
+{
+    "files.associations": {
+        "gcoap.h": "c",
+        "gcoap_example.h": "c",
+        "saul_reg.h": "c",
+        "timeout.h": "c",
+        "callback.h": "c",
+        "event.h": "c",
+        "clist.h": "c",
+        "irq.h": "c",
+        "irq_arch.h": "c",
+        "stdbool.h": "c",
+        "stdint.h": "c",
+        "cpu.h": "c",
+        "array": "c",
+        "saul.h": "c",
+        "flash_utils.h": "c",
+        "stddef.h": "c",
+        "phydat.h": "c",
+        "credman.h": "c",
+        "debug.h": "c",
+        "utils.h": "c"
+    }
+}

@@ -50,6 +50,8 @@ USEMODULE += od
 USEMODULE += fmt
 USEMODULE += netutils
 USEMODULE += random
+# Saul
+USEMODULE += saul_default
 # Add also the shell, some shell commands
 USEMODULE += shell
 USEMODULE += shell_cmds_default
@@ -96,3 +98,9 @@ ifndef CONFIG_KCONFIG_MODULE_GCOAP
 GCOAP_RESEND_BUFS_MAX ?= 2
 CFLAGS += -DCONFIG_GCOAP_RESEND_BUFS_MAX=$(GCOAP_RESEND_BUFS_MAX)
 endif
+
+
+
+CFLAGS += -DCONFIG_GCOAP_PDU_BUF_SIZE=256
+CFLAGS += -DSAUL_DEVICE_COUNT=14
+
