@@ -197,25 +197,32 @@ size_t phydat_to_str(const phydat_t *data, const uint8_t dim, char* buf, const s
 static ssize_t _saul_get_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
 {
     (void)ctx;
-    gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-    coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-    size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
-
     /* write the RIOT board name in the response buffer */
     saul_reg_t *dev = saul_reg_find_name(ctx->resource->path + 1);
 
     int buf_pos = 0;
-
-    if (dev) {
-        phydat_t res;
-        int dim = saul_reg_read(dev, &res);
-        buf_pos = phydat_to_str(&res, dim, (char*)pdu->payload, pdu->payload_len);
-    }
-    else {
-        buf_pos = snprintf((char *)pdu->payload, pdu->payload_len, "No device found\n");
+    
+    /* read coap method type in packet */
+    unsigned method_flag = coap_method2flag(coap_get_code_detail(pdu));
+    switch (method_flag) {
+        case COAP_GET: {
+            gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
+            coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
+            size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
+            phydat_t res;
+            int dim = saul_reg_read(dev, &res);
+            buf_pos = phydat_to_str(&res, dim, (char*)pdu->payload, pdu->payload_len);
+            return resp_len + buf_pos;
+        }
+        case COAP_PUT: {
+            phydat_t data;
+            data.val[0] = 1;
+            saul_reg_write(dev, &data);
+            return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+        }
     }
     
-    return resp_len + buf_pos;
+    return 0;
 }
 
 void server_init(void)
@@ -245,14 +252,12 @@ void server_init(void)
         snprintf(resource_uri, resource_uri_len, "/%s", dev->name);
 
         // Init array items inside resources and link_params arrays
-        _resources[i] = (coap_resource_t){ resource_uri, COAP_GET, _saul_get_handler, NULL };
+        _resources[i] = (coap_resource_t){ resource_uri, COAP_GET | COAP_PUT, _saul_get_handler, NULL };
         _link_params[i] = NULL;
 
         // Increase dev counter
         i++;
     }
-
-    saul_reg_t *dev = saul_reg_find_name(saul_reg->name);
 
     // coap get [fe80::e8e4:4534:4649:f34b]:5683 /.well-known/core
 
