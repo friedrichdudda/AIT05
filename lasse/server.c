@@ -194,7 +194,7 @@ size_t phydat_to_str(const phydat_t *data, const uint8_t dim, char* buf, const s
         return dev->name;
     }
 } */
-static ssize_t _saul_get_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
+static ssize_t _saul_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
 {
     (void)ctx;
     /* write the RIOT board name in the response buffer */
@@ -252,7 +252,7 @@ void server_init(void)
         snprintf(resource_uri, resource_uri_len, "/%s", dev->name);
 
         // Init array items inside resources and link_params arrays
-        _resources[i] = (coap_resource_t){ resource_uri, COAP_GET | COAP_PUT, _saul_get_handler, NULL };
+        _resources[i] = (coap_resource_t){ resource_uri, COAP_GET | COAP_PUT, _saul_handler, NULL };
         _link_params[i] = NULL;
 
         // Increase dev counter
