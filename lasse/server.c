@@ -216,7 +216,9 @@ static ssize_t _saul_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
         }
         case COAP_PUT: {
             phydat_t data;
-            data.val[0] = 1;
+            char payload[6] = { 0 };
+            memcpy(payload, (char *)pdu->payload, pdu->payload_len);
+            data.val[0] = atoi(payload);
             saul_reg_write(dev, &data);
             return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
         }
