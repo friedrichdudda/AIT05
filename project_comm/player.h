@@ -16,8 +16,8 @@
  * @author      Ken Bannister <kb2ma@runbox.com>
  */
 
-#ifndef GCOAP_EXAMPLE_H
-#define GCOAP_EXAMPLE_H
+#ifndef PLAYER_H
+#define PLAYER_H
 
 #include <stdint.h>
 #include <stdio.h>
@@ -48,7 +48,7 @@ int gcoap_cli_cmd(int argc, char **argv);
  *
  * Run this exactly one during startup.
  */
-void server_init(void);
+void player_server_init(void);
 
 /**
  * @brief   Notifies all observers registered to /cli/stats - if any
@@ -61,5 +61,5 @@ void notify_observers(void);
 }
 #endif
 
-#endif /* GCOAP_EXAMPLE_H */
+#endif /* PLAYER_H */
 /** @} */
