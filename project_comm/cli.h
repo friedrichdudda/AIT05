@@ -16,8 +16,8 @@
  * @author      Ken Bannister <kb2ma@runbox.com>
  */
 
-#ifndef REFEREE_H
-#define REFEREE_H
+#ifndef CUSTOM_CLI_H
+#define CUSTOM_CLI_H
 
 #include <stdint.h>
 #include <stdio.h>
@@ -35,29 +35,17 @@ extern "C" {
 
 extern uint16_t req_count;  /**< Counts requests sent by CLI. */
 
-extern sock_udp_ep_t player_1;
-extern sock_udp_ep_t player_2;
-
-extern uint32_t player_1_count;
-extern uint32_t player_2_count;
-
 /**
- * @brief   Registers the CoAP resources exposed in the example app
- *
- * Run this exactly one during startup.
+ * @brief   Shell interface exposing the client side features of gcoap
+ * @param   argc    Number of shell arguments (including shell command name)
+ * @param   argv    Shell argument values (including shell command name)
+ * @return  Exit status of the shell command
  */
-void referee_server_init(void);
-
-/**
- * @brief   Notifies all observers registered to /cli/stats - if any
- *
- * Call this whenever the count of successfully send client requests changes
- */
-void referee_notify_observers(void);
+int gcoap_cli_cmd(int argc, char **argv);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* REFEREE_H */
+#endif /* CUSTOM_CLI_H */
 /** @} */

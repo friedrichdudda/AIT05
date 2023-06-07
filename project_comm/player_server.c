@@ -19,12 +19,6 @@
 #define SAUL_DEVICE_COUNT      (2)
 #endif
 
-sock_udp_ep_t *player_1 = NULL;
-sock_udp_ep_t *player_2 = NULL;
-
-uint32_t player_1_count = 0;
-uint32_t player_2_count = 0;
-
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
 

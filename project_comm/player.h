@@ -36,14 +36,6 @@ extern "C" {
 extern uint16_t req_count;  /**< Counts requests sent by CLI. */
 
 /**
- * @brief   Shell interface exposing the client side features of gcoap
- * @param   argc    Number of shell arguments (including shell command name)
- * @param   argv    Shell argument values (including shell command name)
- * @return  Exit status of the shell command
- */
-int gcoap_cli_cmd(int argc, char **argv);
-
-/**
  * @brief   Registers the CoAP resources exposed in the example app
  *
  * Run this exactly one during startup.
@@ -55,7 +47,7 @@ void player_server_init(void);
  *
  * Call this whenever the count of successfully send client requests changes
  */
-void notify_observers(void);
+void player_notify_observers(void);
 
 #ifdef __cplusplus
 }

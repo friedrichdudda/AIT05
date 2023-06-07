@@ -33,7 +33,7 @@
 #include "net/utils.h"
 #include "od.h"
 
-#include "gcoap_example.h"
+#include "cli.h"
 
 #define ENABLE_DEBUG 0
 #include "debug.h"
@@ -57,7 +57,7 @@ uint16_t req_count = 0;
 /*
  * Response callback.
  */
-static void _resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t* pdu,
+static void _resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
                           const sock_udp_ep_t *remote)
 {
     (void)remote;       /* not interested in the source currently */
@@ -86,17 +86,17 @@ static void _resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t* pdu,
     char *class_str = (coap_get_code_class(pdu) == COAP_CLASS_SUCCESS)
                             ? "Success" : "Error";
     printf("gcoap: response %s, code %1u.%02u", class_str,
-                                                coap_get_code_class(pdu),
-                                                coap_get_code_detail(pdu));
+           coap_get_code_class(pdu),
+           coap_get_code_detail(pdu));
     if (pdu->payload_len) {
         unsigned content_type = coap_get_content_type(pdu);
         if (content_type == COAP_FORMAT_TEXT
-                || content_type == COAP_FORMAT_LINK
-                || coap_get_code_class(pdu) == COAP_CLASS_CLIENT_FAILURE
-                || coap_get_code_class(pdu) == COAP_CLASS_SERVER_FAILURE) {
+            || content_type == COAP_FORMAT_LINK
+            || coap_get_code_class(pdu) == COAP_CLASS_CLIENT_FAILURE
+            || coap_get_code_class(pdu) == COAP_CLASS_SERVER_FAILURE) {
             /* Expecting diagnostic payload in failure cases */
             printf(", %u bytes\n%.*s\n", pdu->payload_len, pdu->payload_len,
-                                                          (char *)pdu->payload);
+                   (char *)pdu->payload);
         }
         else {
             printf(", %u bytes\n", pdu->payload_len);
@@ -187,7 +187,7 @@ static int _print_usage(char **argv)
 int gcoap_cli_cmd(int argc, char **argv)
 {
     /* Ordered like the RFC method code numbers, but off by 1. GET is code 0. */
-    char *method_codes[] = {"ping", "get", "post", "put"};
+    char *method_codes[] = { "ping", "get", "post", "put" };
     uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
     coap_pkt_t pdu;
     size_t len;
@@ -202,13 +202,14 @@ int gcoap_cli_cmd(int argc, char **argv)
 
         if (IS_USED(MODULE_GCOAP_DTLS)) {
             printf("CoAP server is listening on port %u\n", CONFIG_GCOAPS_PORT);
-        } else {
+        }
+        else {
             printf("CoAP server is listening on port %u\n", CONFIG_GCOAP_PORT);
         }
 #if IS_USED(MODULE_GCOAP_DTLS)
         printf("Connection secured with DTLS\n");
         printf("Free DTLS session slots: %d/%d\n", dsm_get_num_available_slots(),
-                dsm_get_num_maximum_slots());
+               dsm_get_num_maximum_slots());
 #endif
         printf(" CLI requests sent: %u\n", req_count);
         printf("CoAP open requests: %u\n", open_reqs);
@@ -282,16 +283,16 @@ int gcoap_cli_cmd(int argc, char **argv)
         apos++;
     }
 
-    if (((argc == apos + 1) && (code_pos == 0)) ||    /* ping */
-        ((argc == apos + 2) && (code_pos == 1)) ||    /* get */
+    if (((argc == apos + 1) && (code_pos == 0)) ||      /* ping */
+        ((argc == apos + 2) && (code_pos == 1)) ||      /* get */
         ((argc == apos + 2 ||
-          argc == apos + 3) && (code_pos > 1))) {     /* post or put */
+          argc == apos + 3) && (code_pos > 1))) {       /* post or put */
 
         char *uri = NULL;
         int uri_len = 0;
         if (code_pos) {
-            uri = argv[apos+1];
-            uri_len = strlen(argv[apos+1]);
+            uri = argv[apos + 1];
+            uri_len = strlen(argv[apos + 1]);
         }
 
         if (uri && ((uri_len <= 0) || (uri[0] != '/'))) {
@@ -344,7 +345,7 @@ int gcoap_cli_cmd(int argc, char **argv)
             memcpy(_last_req_path, uri, uri_len);
         }
 
-        size_t paylen = (argc == apos + 3) ? strlen(argv[apos+2]) : 0;
+        size_t paylen = (argc == apos + 3) ? strlen(argv[apos + 2]) : 0;
         if (paylen) {
             coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
         }
@@ -356,7 +357,7 @@ int gcoap_cli_cmd(int argc, char **argv)
         if (paylen) {
             len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
             if (pdu.payload_len >= paylen) {
-                memcpy(pdu.payload, argv[apos+2], paylen);
+                memcpy(pdu.payload, argv[apos + 2], paylen);
                 len += paylen;
             }
             else {
@@ -369,7 +370,7 @@ int gcoap_cli_cmd(int argc, char **argv)
         }
 
         printf("gcoap_cli: sending msg ID %u, %u bytes\n", coap_get_id(&pdu),
-               (unsigned) len);
+               (unsigned)len);
         if (!_send(&buf[0], len, argv[apos])) {
             puts("gcoap_cli: msg send failed");
         }
