@@ -45,6 +45,8 @@ endif
 
 USEMODULE += gcoap
 
+USEMODULE += cord_ep_standalone
+
 # Required by gcoap example
 USEMODULE += od
 USEMODULE += fmt
@@ -97,6 +99,12 @@ ifndef CONFIG_KCONFIG_MODULE_GCOAP
 # Increase from default for confirmable block2 follow-on requests
 GCOAP_RESEND_BUFS_MAX ?= 2
 CFLAGS += -DCONFIG_GCOAP_RESEND_BUFS_MAX=$(GCOAP_RESEND_BUFS_MAX)
+endif
+
+# For debugging and demonstration purposes, we limit the lifetime to 60s
+# Set CONFIG_CORD_LT only if not being set via Kconfig
+ifndef CONFIG_CORD_LT
+CFLAGS += -DCONFIG_CORD_LT=60
 endif
 
 

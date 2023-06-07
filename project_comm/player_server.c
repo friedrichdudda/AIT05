@@ -11,6 +11,8 @@
 #include "saul_reg.h"
 #include "saul.h"
 #include "gcoap_example.h"
+#include "net/cord/common.h"
+#include "net/cord/ep_standalone.h"
 
 #define ENABLE_DEBUG 0
 #include "debug.h"
@@ -120,7 +122,26 @@ static ssize_t _set_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
 
+/* we will use a custom event handler for dumping cord_ep events */
+static void _on_ep_event(cord_ep_standalone_event_t event)
+{
+    switch (event) {
+    case CORD_EP_REGISTERED:
+        puts("RD endpoint event: now registered with a RD");
+        break;
+    case CORD_EP_DEREGISTERED:
+        puts("RD endpoint event: dropped client registration");
+        break;
+    case CORD_EP_UPDATED:
+        puts("RD endpoint event: successfully updated client registration");
+        break;
+    }
+}
+
 void referee_server_init(void)
 {
     gcoap_register_listener(&_listener);
+
+    /* register event callback with cord_ep_standalone */
+    cord_ep_standalone_reg_cb(_on_ep_event);
 }
