@@ -53,12 +53,12 @@ async def discover_dictionary():
     except Exception as e:
         print("Failed to fetch resource:")
         print(e)
-        return e
+        return None
     else:
         return str(response.remote.hostinfo)
 
 
-async def discover_players(rd_address):
+async def discover_players(rd_address: str):
     protocol = await aiocoap.Context.create_client_context()
 
     request = aiocoap.Message(
@@ -73,10 +73,26 @@ async def discover_players(rd_address):
         print("Failed to fetch resource:")
         print(e)
     else:
-        print("Result: %s\n%r" % (response.code, response.payload))
+        payload = response.payload.decode("utf-8")
+        lines = payload.split(",")
+        endpoints = [str(line.split(";")[0].split("/")[2]) for line in lines]
+        return endpoints
 
 
-async def start_server():
+async def start_game(player_addresses: list[str]):
+    protocol = await aiocoap.Context.create_client_context()
+
+    for index, player_address in enumerate(player_addresses):
+        request = aiocoap.Message(
+            code=aiocoap.Code.PUT,
+            uri=f"coap://{player_address}/assign_player_id",
+            payload=f"{index}".encode("ascii"),
+        )
+
+        await protocol.request(request).response
+
+
+async def start_server(player_addresses: list[str]):
     # Resource tree creation
     root = resource.Site()
 
@@ -85,7 +101,7 @@ async def start_server():
     )
     root.add_resource(["increment_player_count"], IncrementPlayerCount())
 
-    await aiocoap.Context.create_server_context(root)
+    await aiocoap.Context.create_server_context(root, bind=["127.0.0.1", 8684])
 
     # Run forever
     await asyncio.get_running_loop().create_future()
@@ -95,11 +111,16 @@ async def main():
     # Discover resource dictionary via multicast
     resource_directory_ip_address = await discover_dictionary()
 
-    # Discover players in resource directory
-    await discover_players(resource_directory_ip_address)
+    if resource_directory_ip_address:
+        # Discover players in resource directory
+        player_addresses = await discover_players(resource_directory_ip_address)
 
-    # Start server to listen for client events
-    # await start_server()
+        if player_addresses:
+            # Start Game
+            await start_game(player_addresses)
+
+            # Start server to listen for client events
+            await start_server(player_addresses)
 
 
 if __name__ == "__main__":
