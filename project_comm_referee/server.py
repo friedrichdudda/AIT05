@@ -91,20 +91,7 @@ async def start_game(player_addresses: list[str]):
 
         await protocol.request(request).response
 
-
-async def start_server(player_addresses: list[str]):
-    # Resource tree creation
-    root = resource.Site()
-
-    root.add_resource(
-        [".well-known", "core"], resource.WKCResource(root.get_resources_as_linkheader)
-    )
-    root.add_resource(["increment_player_count"], IncrementPlayerCount())
-
-    await aiocoap.Context.create_server_context(root, bind=["127.0.0.1", 8684])
-
-    # Run forever
-    await asyncio.get_running_loop().create_future()
+    # TODO observe /count field
 
 
 async def main():
@@ -118,9 +105,6 @@ async def main():
         if player_addresses:
             # Start Game
             await start_game(player_addresses)
-
-            # Start server to listen for client events
-            await start_server(player_addresses)
 
 
 if __name__ == "__main__":
