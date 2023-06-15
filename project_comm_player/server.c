@@ -78,34 +78,10 @@ static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
     return res;
 }
 
-void notify_observers(void)
-{
-    size_t len;
-    uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
-    coap_pkt_t pdu;
-
-    /* send Observe notification for /cli/stats */
-    switch (gcoap_obs_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE,
-                           &_resources[0])) {
-    case GCOAP_OBS_INIT_OK:
-        DEBUG("gcoap_cli: creating /cli/stats notification\n");
-        coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
-        len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
-        len += fmt_u16_dec((char *)pdu.payload, req_count);
-        gcoap_obs_send(&buf[0], len, &_resources[0]);
-        break;
-    case GCOAP_OBS_INIT_UNUSED:
-        DEBUG("gcoap_cli: no observer for /cli/stats\n");
-        break;
-    case GCOAP_OBS_INIT_ERR:
-        DEBUG("gcoap_cli: error initializing /cli/stats notification\n");
-        break;
-    }
-}
-
 static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                      coap_request_ctx_t *ctx)
 {
+    (void)ctx;
     /* TODO change LED color to payload */
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
@@ -114,6 +90,7 @@ static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
+    (void)ctx;
     /* TODO change LED color to green */
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
@@ -122,6 +99,7 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
+    (void)ctx;
     /* TODO change LED color to red */
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
@@ -134,16 +112,12 @@ void referee_server_init(void)
 
     puts("Simplified CoRE RD registration example\n");
 
-    /* fill riot info */
-    sprintf(riot_info, "{\"ep\":\"%s\",\"lt\":%u}",
-            cord_common_get_ep(), CONFIG_CORD_LT);
-
     /* parse RD address information */
     sock_udp_ep_t rd_ep;
 
     if (sock_udp_name2ep(&rd_ep, RD_ADDR) < 0) {
         puts("error: unable to parse RD address from RD_ADDR variable");
-        return 1;
+        return;
     }
 
     /* if netif is not specified in addr and it's link local */
@@ -156,7 +130,7 @@ void referee_server_init(void)
         /* if there are many it's an error */
         else {
             puts("error: must specify an interface for a link local address");
-            return 1;
+            return;
         }
     }
 
@@ -171,8 +145,6 @@ void referee_server_init(void)
 
     /* print RD client information */
     puts("epsim configuration:");
-    printf("         ep: %s\n", cord_common_get_ep());
-    printf("         lt: %is\n", (int)CONFIG_CORD_LT);
     printf(" RD address: [%s]:%u\n\n", ep_str, ep_port);
 
     xtimer_sleep(STARTUP_DELAY);

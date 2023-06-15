@@ -42,13 +42,6 @@ extern uint16_t req_count;  /**< Counts requests sent by CLI. */
  */
 void player_server_init(void);
 
-/**
- * @brief   Notifies all observers registered to /cli/stats - if any
- *
- * Call this whenever the count of successfully send client requests changes
- */
-void player_notify_observers(void);
-
 #ifdef __cplusplus
 }
 #endif

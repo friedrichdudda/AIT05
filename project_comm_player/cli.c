@@ -374,10 +374,6 @@ int gcoap_cli_cmd(int argc, char **argv)
         if (!_send(&buf[0], len, argv[apos])) {
             puts("gcoap_cli: msg send failed");
         }
-        else {
-            /* send Observe notification for /cli/stats */
-            notify_observers();
-        }
         return 0;
     }
     else {

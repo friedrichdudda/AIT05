@@ -24,7 +24,8 @@
 #include "net/gcoap.h"
 #include "shell.h"
 
-#include "referee.h"
+#include "cli.h"
+#include "server.h"
 
 #define MAIN_QUEUE_SIZE (4)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
@@ -38,7 +39,7 @@ int main(void)
 {
     /* for the thread running the shell */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
-    referee_server_init();
+    player_server_init();
     puts("gcoap example app");
 
     /* start shell */
