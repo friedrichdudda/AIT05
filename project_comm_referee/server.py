@@ -39,6 +39,43 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
 
+async def discover_dictionary():
+    protocol = await aiocoap.Context.create_client_context()
+
+    request = aiocoap.Message(
+        mtype=aiocoap.Type.NON,
+        code=aiocoap.Code.GET,
+        uri="coap://[ff02::1]/.well-known/core?rt=core.rd*",
+    )
+
+    try:
+        response = await protocol.request(request).response
+    except Exception as e:
+        print("Failed to fetch resource:")
+        print(e)
+        return e
+    else:
+        return str(response.remote.hostinfo)
+
+
+async def discover_players(rd_address):
+    protocol = await aiocoap.Context.create_client_context()
+
+    request = aiocoap.Message(
+        code=aiocoap.Code.GET,
+        uri=f"coap://{rd_address}/resource-lookup/?rt=pushups_player",
+    )
+
+    try:
+        response = await protocol.request(request).response
+
+    except Exception as e:
+        print("Failed to fetch resource:")
+        print(e)
+    else:
+        print("Result: %s\n%r" % (response.code, response.payload))
+
+
 async def start_server():
     # Resource tree creation
     root = resource.Site()
@@ -52,42 +89,6 @@ async def start_server():
 
     # Run forever
     await asyncio.get_running_loop().create_future()
-
-
-async def discover_players(rd_address):
-    protocol = await aiocoap.Context.create_client_context()
-
-    request = aiocoap.Message(
-        code=aiocoap.Code.GET, uri=f"coap://{rd_address}/resource-lookup/"
-    )
-
-    try:
-        response = await protocol.request(request).response
-
-    except Exception as e:
-        print("Failed to fetch resource:")
-        print(e)
-    else:
-        print("Result: %s\n%r" % (response.code, response.payload))
-
-
-async def discover_dictionary():
-    protocol = await aiocoap.Context.create_client_context()
-
-    request = aiocoap.Message(
-        mtype=aiocoap.Type.NON,
-        code=aiocoap.Code.GET,
-        uri="coap://[ff02::1]/.well-known/core",
-    )
-
-    try:
-        response = await protocol.request(request).response
-    except Exception as e:
-        print("Failed to fetch resource:")
-        print(e)
-        return e
-    else:
-        return str(response.remote.hostinfo)
 
 
 async def main():
