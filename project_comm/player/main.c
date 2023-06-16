@@ -33,14 +33,15 @@ typedef enum {
 } status_color_t;
 
 typedef enum {
-    YELLOW  = 0,
-    ORANGE  = 1,
-    BLUE    = 2,
-    PINK    = 3,
-    PURPLE  = 4,
+    PLAYER_COLOR_YELLOW = 0,
+    PLAYER_COLOR_ORANGE = 1,
+    PLAYER_COLOR_BLUE   = 2,
+    PLAYER_COLOR_PINK   = 3,
+    PLAYER_COLOR_PURPLE = 4,
 } player_color_t;
 
 static uint32_t pushup_count = 0;
+static player_color_t player_color = 0;
 
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
@@ -129,27 +130,74 @@ void notify_count_observers(void)
 
 void set_status_color(status_color_t color)
 {
-    saul_reg_t *dev_red = saul_reg_find_nth(0);
-    saul_reg_t *dev_green = saul_reg_find_nth(1);
-    saul_reg_t *dev_blue = saul_reg_find_nth(2);
+    saul_reg_t *red = saul_reg_find_nth(0);
+    saul_reg_t *green = saul_reg_find_nth(1);
+    saul_reg_t *blue = saul_reg_find_nth(2);
 
-    phydat_t data_off = {
+    phydat_t off = {
         .val = { 0 }
     };
-    phydat_t data_on = {
+    phydat_t on = {
         .val = { 1 }
     };
 
     /* turn all off first */
-    saul_reg_write(dev_red, &data_off);
-    saul_reg_write(dev_green, &data_off);
-    saul_reg_write(dev_blue, &data_off);
+    saul_reg_write(red, &off);
+    saul_reg_write(green, &off);
+    saul_reg_write(blue, &off);
 
     /* turn on the required led color */
     switch (color) {
     case STATUS_COLOR_OFF: break;
-    case STATUS_COLOR_RED: saul_reg_write(dev_red, &data_on); break;
-    case STATUS_COLOR_GREEN: saul_reg_write(dev_green, &data_on); break;
+    case STATUS_COLOR_RED: saul_reg_write(red, &on); break;
+    case STATUS_COLOR_GREEN: saul_reg_write(green, &on); break;
+    }
+}
+
+void set_player_color(player_color_t color)
+{
+    saul_reg_t *red = saul_reg_find_nth(0);
+    saul_reg_t *green = saul_reg_find_nth(1);
+    saul_reg_t *blue = saul_reg_find_nth(2);
+
+    phydat_t off = {
+        .val = { 0 }
+    };
+    phydat_t on = {
+        .val = { 1 }
+    };
+
+    /* turn all off first */
+    saul_reg_write(red, &off);
+    saul_reg_write(green, &off);
+    saul_reg_write(blue, &off);
+
+    /* turn on the required led color */
+    switch (color) {
+    case PLAYER_COLOR_YELLOW:
+        // TODO implement the correct color mixture
+        saul_reg_write(red, &on);
+        break;
+
+    case PLAYER_COLOR_ORANGE:
+        // TODO implement the correct color mixture
+        saul_reg_write(red, &on);
+        break;
+
+    case PLAYER_COLOR_BLUE:
+        // TODO implement the correct color mixture
+        saul_reg_write(red, &on);
+        break;
+
+    case PLAYER_COLOR_PINK:
+        // TODO implement the correct color mixture
+        saul_reg_write(red, &on);
+        break;
+
+    case PLAYER_COLOR_PURPLE:
+        // TODO implement the correct color mixture
+        saul_reg_write(red, &on);
+        break;
     }
 }
 
@@ -158,9 +206,7 @@ static ssize_t _assign_color_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t le
 {
     (void)ctx;
 
-    printf("\n\n SET COLOR ID\n\n");
-
-    // TODO set color based on id in payload
+    player_color = (player_color_t)atoi((char *)pdu->payload);
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
