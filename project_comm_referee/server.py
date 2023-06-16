@@ -14,25 +14,6 @@ class Player:
 
 registered_players: list[Player] = []
 
-
-class IncrementPlayerCount(resource.Resource):
-    async def render_put(self, request):
-        print("Increment player count: %s" % request.remote.hostinfo)
-
-        player = next(
-            x for x in registered_players if x.host == request.remote.hostinfo
-        )
-
-        player.count += 1
-
-        return aiocoap.Message(
-            code=aiocoap.Code.CHANGED,
-            payload="\n".join([request.remote.hostinfo, str(player.count)]).encode(
-                "utf8"
-            ),
-        )
-
-
 # logging setup
 
 logging.basicConfig(level=logging.INFO)
@@ -75,23 +56,23 @@ async def discover_players(rd_address: str):
     else:
         payload = response.payload.decode("utf-8")
         lines = payload.split(",")
-        endpoints = [str(line.split(";")[0].split("/")[2]) for line in lines]
+        endpoints = [Player(str(line.split(";")[0].split("/")[2])) for line in lines]
         return endpoints
 
 
-async def start_game(player_addresses: list[str]):
+async def start_game(players: list[Player]):
     protocol = await aiocoap.Context.create_client_context()
 
-    for index, player_address in enumerate(player_addresses):
+    for index, player in enumerate(players):
         request = aiocoap.Message(
             code=aiocoap.Code.PUT,
-            uri=f"coap://{player_address}/assign_player_id",
+            uri=f"coap://{player.host}/assign_player_id",
             payload=f"{index}".encode("ascii"),
         )
 
         await protocol.request(request).response
 
-    # TODO observe /count field
+    # TODO observe /count field for each player
 
 
 async def main():
