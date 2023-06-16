@@ -12,8 +12,6 @@ class Player:
         self.host = host
 
 
-registered_players: list[Player] = []
-
 # logging setup
 
 logging.basicConfig(level=logging.INFO)
@@ -56,11 +54,12 @@ async def discover_players(rd_address: str):
     else:
         payload = response.payload.decode("utf-8")
         lines = payload.split(",")
-        endpoints = [Player(str(line.split(";")[0].split("/")[2])) for line in lines]
-        return endpoints
+        endpoints = {str(line.split(";")[0].split("/")[2]) for line in lines}
+        player = {Player(endpoint) for endpoint in endpoints}
+        return player
 
 
-async def start_game(players: list[Player]):
+async def start_game(players: set[Player]):
     protocol = await aiocoap.Context.create_client_context()
 
     # assign id to each player and start the game
@@ -123,6 +122,11 @@ async def main():
         players = await discover_players(resource_directory_ip_address)
 
         if players:
+            # Print available player addresses
+            print("Found players:")
+            for player in players:
+                print(f"{player.host}")
+
             # Start Game
             await start_game(players)
 
