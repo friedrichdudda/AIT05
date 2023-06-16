@@ -45,7 +45,7 @@ endif
 
 USEMODULE += gcoap
 
-USEMODULE += cord_ep_standalone
+USEMODULE += cord_epsim
 
 # Required by gcoap example
 USEMODULE += od
@@ -58,6 +58,7 @@ USEMODULE += saul_default
 USEMODULE += shell
 USEMODULE += shell_cmds_default
 USEMODULE += ps
+USEMODULE += xtimer
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
@@ -101,10 +102,17 @@ GCOAP_RESEND_BUFS_MAX ?= 2
 CFLAGS += -DCONFIG_GCOAP_RESEND_BUFS_MAX=$(GCOAP_RESEND_BUFS_MAX)
 endif
 
+# The RD server's address must be defined by the build environment by setting
+# the RD_ADDR environment variable. Per default, this value is set to the
+# loopback address for enabling the build tests to successfully build this
+# example.
+RD_ADDR ?= \"[affe::1]\"
+CFLAGS += -DRD_ADDR=$(RD_ADDR)
+
 # For debugging and demonstration purposes, we limit the lifetime to 60s
 # Set CONFIG_CORD_LT only if not being set via Kconfig
 ifndef CONFIG_CORD_LT
-CFLAGS += -DCONFIG_CORD_LT=60
+CFLAGS += -DCONFIG_CORD_LT=$(RD_LT)
 endif
 
 
