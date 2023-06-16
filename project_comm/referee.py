@@ -16,9 +16,9 @@ class PlayerColor(Enum):
 
 class Player:
     host: str
-    color: Color
+    color: PlayerColor
 
-    def __init__(self, host: str, color: Color):
+    def __init__(self, host: str, color: PlayerColor):
         self.host = host
         self.color = color
 
@@ -67,7 +67,7 @@ async def discover_players(rd_address: str):
         lines = payload.split(",")
         endpoints = {str(line.split(";")[0].split("/")[2]) for line in lines}
         player = {
-            Player(endpoint, Color(index)) for index, endpoint in enumerate(endpoints)
+            Player(endpoint, PlayerColor(index)) for index, endpoint in enumerate(endpoints)
         }
         return player
 
