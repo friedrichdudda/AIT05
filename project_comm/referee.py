@@ -63,6 +63,7 @@ async def discover_players(rd_address: str):
 async def start_game(players: list[Player]):
     protocol = await aiocoap.Context.create_client_context()
 
+    # assign id to each player and start the game
     for index, player in enumerate(players):
         request = aiocoap.Message(
             code=aiocoap.Code.PUT,
@@ -72,7 +73,45 @@ async def start_game(players: list[Player]):
 
         await protocol.request(request).response
 
-    # TODO observe /count field for each player
+    # observe the count of each player
+    """ requests = [
+        (
+            aiocoap.Message(
+                code=aiocoap.Code.GET, uri=f"coap://{player.host}/count", observe=0
+            )
+        )
+        for player in players
+    ]
+
+    messages = [protocol.request(request) for request in requests]
+    for msg in messages:
+        if msg.observation:
+            msg.observation.register_callback(lambda response: print(response.payload))
+        else:
+            print("Error no observation in message!") """
+
+    async def observe_resource(uri: str):
+        protocol = await aiocoap.Context.create_client_context()
+        message = aiocoap.Message(
+            code=aiocoap.Code.GET,
+            uri=uri,
+            observe=0,
+        )
+
+        async def handle_notification(response):
+            print("Received notification:", response.payload.decode("utf-8"))
+
+        try:
+            request = protocol.request(message)
+            if request.observation:
+                request.observation.register_callback(handle_notification)
+        except Exception as e:
+            print("Failed to observe resource:", e)
+        finally:
+            await protocol.shutdown()
+
+    tasks = [observe_resource(f"coap://{player.host}/count") for player in players]
+    await asyncio.gather(*tasks)
 
 
 async def main():
@@ -81,12 +120,13 @@ async def main():
 
     if resource_directory_ip_address:
         # Discover players in resource directory
-        player_addresses = await discover_players(resource_directory_ip_address)
+        players = await discover_players(resource_directory_ip_address)
 
-        if player_addresses:
+        if players:
             # Start Game
-            await start_game(player_addresses)
+            await start_game(players)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
