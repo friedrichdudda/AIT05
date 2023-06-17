@@ -80,8 +80,10 @@ async def start_game(players: set[Player]):
         message = aiocoap.Message(
             code=aiocoap.Code.PUT,
             uri=f"coap://{player.host}/assign_color_id",
-            payload=f"{player.color}".encode("ascii"),
+            payload=f"{player.color.value}".encode("ascii"),
         )
+
+        print("PLAYER COLOR: ", player.color)
 
         await protocol.request(message).response
 
