@@ -32,6 +32,8 @@ static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
 
 static ssize_t _assign_player_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                          coap_request_ctx_t *ctx);
+static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                              coap_request_ctx_t *ctx);
 static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx);
 static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
@@ -40,12 +42,14 @@ static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 /* CoAP resources. Must be sorted by path (ASCII order). */
 static const coap_resource_t _resources[] = {
     { "/assign_player_id", COAP_PUT, _assign_player_id_handler, NULL },
+    { "/count", COAP_GET, _count_handler, NULL },
     { "/set_to_winner", COAP_PUT, _set_to_winner_handler, NULL },
     { "/set_to_looser", COAP_PUT, _set_to_looser_handler, NULL },
 };
 
 static const char *_link_params[] = {
     ";rt=\"pushups_player\"",
+    ";rt=\"pushups_player\";obs",
     ";rt=\"pushups_player\"",
     ";rt=\"pushups_player\"",
 };
@@ -112,6 +116,16 @@ static ssize_t _assign_player_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t l
     (void)ctx;
 
     // TODO set color based on id in payload
+
+    return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+}
+
+static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                              coap_request_ctx_t *ctx)
+{
+    (void)ctx;
+
+    // Return current pushup count
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
