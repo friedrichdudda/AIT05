@@ -16,6 +16,7 @@
 #include "net/sock/util.h"
 #include "net/ipv6/addr.h"
 #include "xtimer.h"
+#include "server.h"
 
 #define ENABLE_DEBUG 0
 #include "debug.h"
@@ -44,9 +45,9 @@ static const coap_resource_t _resources[] = {
 };
 
 static const char *_link_params[] = {
-    NULL,
-    NULL,
-    NULL,
+    ";rt=\"pushups_player\"",
+    ";rt=\"pushups_player\"",
+    ";rt=\"pushups_player\"",
 };
 
 static gcoap_listener_t _listener = {
@@ -78,35 +79,37 @@ static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
     return res;
 }
 
-void notify_observers(void)
+void set_led_color(led_color_t color)
 {
-    size_t len;
-    uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
-    coap_pkt_t pdu;
+    saul_reg_t *dev_red = saul_reg_find_nth(0);
+    saul_reg_t *dev_green = saul_reg_find_nth(1);
+    saul_reg_t *dev_blue = saul_reg_find_nth(2);
 
-    /* send Observe notification for /cli/stats */
-    switch (gcoap_obs_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE,
-                           &_resources[0])) {
-    case GCOAP_OBS_INIT_OK:
-        DEBUG("gcoap_cli: creating /cli/stats notification\n");
-        coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
-        len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
-        len += fmt_u16_dec((char *)pdu.payload, req_count);
-        gcoap_obs_send(&buf[0], len, &_resources[0]);
-        break;
-    case GCOAP_OBS_INIT_UNUSED:
-        DEBUG("gcoap_cli: no observer for /cli/stats\n");
-        break;
-    case GCOAP_OBS_INIT_ERR:
-        DEBUG("gcoap_cli: error initializing /cli/stats notification\n");
-        break;
+    phydat_t data_off = {
+        .val = { 0 }
+    };
+    phydat_t data_on = {
+        .val = { 1 }
+    };
+
+    /* turn all off first */
+    saul_reg_write(dev_red, &data_off);
+    saul_reg_write(dev_green, &data_off);
+    saul_reg_write(dev_blue, &data_off);
+
+    /* turn on the required led color */
+    switch (color) {
+    case LED_COLOR_OFF: break;
+    case LED_COLOR_RED: saul_reg_write(dev_red, &data_on); break;
+    case LED_COLOR_GREEN: saul_reg_write(dev_green, &data_on); break;
+    case LED_COLOR_BLUE: saul_reg_write(dev_blue, &data_on); break;
     }
 }
 
 static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                      coap_request_ctx_t *ctx)
 {
-    /* TODO change LED color to payload */
+    (void)ctx;
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
@@ -114,7 +117,8 @@ static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
-    /* TODO change LED color to green */
+    (void)ctx;
+    set_led_color(LED_COLOR_GREEN);
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
@@ -122,28 +126,25 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
-    /* TODO change LED color to red */
+    (void)ctx;
+    set_led_color(LED_COLOR_RED);
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
 
-void referee_server_init(void)
+void player_server_init(void)
 {
     char ep_str[CONFIG_SOCK_URLPATH_MAXLEN];
     uint16_t ep_port;
 
     puts("Simplified CoRE RD registration example\n");
 
-    /* fill riot info */
-    sprintf(riot_info, "{\"ep\":\"%s\",\"lt\":%u}",
-            cord_common_get_ep(), CONFIG_CORD_LT);
-
     /* parse RD address information */
     sock_udp_ep_t rd_ep;
 
-    if (sock_udp_name2ep(&rd_ep, RD_ADDR) < 0) {
+    if (sock_udp_name2ep(&rd_ep, "[ff02::1]") < 0) {
         puts("error: unable to parse RD address from RD_ADDR variable");
-        return 1;
+        return;
     }
 
     /* if netif is not specified in addr and it's link local */
@@ -156,7 +157,7 @@ void referee_server_init(void)
         /* if there are many it's an error */
         else {
             puts("error: must specify an interface for a link local address");
-            return 1;
+            return;
         }
     }
 

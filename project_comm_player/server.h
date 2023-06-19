@@ -33,6 +33,13 @@
 extern "C" {
 #endif
 
+typedef enum {
+    LED_COLOR_OFF,
+    LED_COLOR_RED,
+    LED_COLOR_GREEN,
+    LED_COLOR_BLUE,
+} led_color_t;
+
 extern uint16_t req_count;  /**< Counts requests sent by CLI. */
 
 /**
@@ -41,13 +48,6 @@ extern uint16_t req_count;  /**< Counts requests sent by CLI. */
  * Run this exactly one during startup.
  */
 void player_server_init(void);
-
-/**
- * @brief   Notifies all observers registered to /cli/stats - if any
- *
- * Call this whenever the count of successfully send client requests changes
- */
-void player_notify_observers(void);
 
 #ifdef __cplusplus
 }

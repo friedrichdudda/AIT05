@@ -112,7 +112,7 @@ CFLAGS += -DRD_ADDR=$(RD_ADDR)
 # For debugging and demonstration purposes, we limit the lifetime to 60s
 # Set CONFIG_CORD_LT only if not being set via Kconfig
 ifndef CONFIG_CORD_LT
-CFLAGS += -DCONFIG_CORD_LT=$(RD_LT)
+CFLAGS += -DCONFIG_CORD_LT=60
 endif
 
 
