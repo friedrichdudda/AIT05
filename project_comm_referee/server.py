@@ -26,7 +26,7 @@ class IncrementPlayerCount(resource.Resource):
         player.count += 1
 
         return aiocoap.Message(
-            code=aiocoap.CHANGED,
+            code=aiocoap.Code.CHANGED,
             payload="\n".join([request.remote.hostinfo, str(player.count)]).encode(
                 "utf8"
             ),
@@ -54,15 +54,16 @@ async def start_server():
     await asyncio.get_running_loop().create_future()
 
 
-async def discover_players():
+async def discover_players(rd_address):
     protocol = await aiocoap.Context.create_client_context()
 
     request = aiocoap.Message(
-        code=aiocoap.GET, uri="coap://127.0.0.1/.well-known/core?rt=core.rd*"
+        code=aiocoap.Code.GET, uri=f"coap://{rd_address}/resource-lookup/"
     )
 
     try:
         response = await protocol.request(request).response
+
     except Exception as e:
         print("Failed to fetch resource:")
         print(e)
@@ -70,12 +71,34 @@ async def discover_players():
         print("Result: %s\n%r" % (response.code, response.payload))
 
 
+async def discover_dictionary():
+    protocol = await aiocoap.Context.create_client_context()
+
+    request = aiocoap.Message(
+        mtype=aiocoap.Type.NON,
+        code=aiocoap.Code.GET,
+        uri="coap://[ff02::1]/.well-known/core",
+    )
+
+    try:
+        response = await protocol.request(request).response
+    except Exception as e:
+        print("Failed to fetch resource:")
+        print(e)
+        return e
+    else:
+        return str(response.remote.hostinfo)
+
+
 async def main():
+    # Discover resource dictionary via multicast
+    resource_directory_ip_address = await discover_dictionary()
+
     # Discover players in resource directory
-    await discover_players()
+    await discover_players(resource_directory_ip_address)
 
     # Start server to listen for client events
-    await start_server()
+    # await start_server()
 
 
 if __name__ == "__main__":

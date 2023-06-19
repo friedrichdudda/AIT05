@@ -172,8 +172,6 @@ void player_server_init(void)
 
     /* print RD client information */
     puts("epsim configuration:");
-    printf("         ep: %s\n", cord_common_get_ep());
-    printf("         lt: %is\n", (int)CONFIG_CORD_LT);
     printf(" RD address: [%s]:%u\n\n", ep_str, ep_port);
 
     xtimer_sleep(STARTUP_DELAY);
