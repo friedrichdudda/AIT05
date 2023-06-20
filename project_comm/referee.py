@@ -117,15 +117,8 @@ async def start_game(players: set[Player]):
             if request.observation and not request.observation.cancelled:
                 request.observation.cancel()
 
-    await observe_resource(f"coap://{list(players)[0].host}/count")
-    """ messages = [
-        (
-            aiocoap.Message(
-                code=aiocoap.Code.GET, uri=f"coap://{player.host}/count", observe=0
-            )
-        )
-        for player in players
-    ] """
+    tasks = [observe_resource(f"coap://{player.host}/count") for player in players]
+    await asyncio.gather(*tasks)
 
 
 async def main():
