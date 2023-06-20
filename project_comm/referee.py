@@ -1,15 +1,24 @@
 import logging
 import asyncio
-import aiocoap.resource as resource
 import aiocoap
+from enum import Enum
+
+WINNING_PUSHUP_COUNT = 4
+
+
+class Color(Enum):
+    RED = 0
+    GREEN = 1
+    BLUE = 2
 
 
 class Player:
-    host: str = ""
-    count: int = 0
+    host: str
+    color: Color
 
-    def __init__(self, host: str):
+    def __init__(self, host: str, color: Color):
         self.host = host
+        self.color = color
 
 
 # logging setup
@@ -55,7 +64,9 @@ async def discover_players(rd_address: str):
         payload = response.payload.decode("utf-8")
         lines = payload.split(",")
         endpoints = {str(line.split(";")[0].split("/")[2]) for line in lines}
-        player = {Player(endpoint) for endpoint in endpoints}
+        player = {
+            Player(endpoint, Color(index)) for index, endpoint in enumerate(endpoints)
+        }
         return player
 
 
@@ -73,6 +84,40 @@ async def start_game(players: set[Player]):
         await protocol.request(message).response
 
     # observe the count of each player
+    def observation_callback(response):
+        print("callback: %r" % response.payload)
+        pushup_count = int(response.payload)
+        if pushup_count == WINNING_PUSHUP_COUNT:
+            winner = list(
+                filter(
+                    lambda player: player.host == str(response.remote.hostinfo),
+                    players,
+                )
+            )[0]
+
+            print(f"The winner is: {winner.color._name_} {winner.host}")
+
+    async def observe_resource(uri: str):
+        message = aiocoap.Message(code=aiocoap.Code.GET)
+        message.set_request_uri(uri)
+        # set observe bit from None to 0
+        message.opt.observe = 0
+        observation_is_over = asyncio.get_event_loop().create_future()
+
+        request = protocol.request(message)
+        try:
+            if request.observation:
+                request.observation.register_callback(observation_callback)
+
+                await request.response
+                await observation_is_over
+        finally:
+            if not request.response.done():
+                request.response.cancel()
+            if request.observation and not request.observation.cancelled:
+                request.observation.cancel()
+
+    await observe_resource(f"coap://{list(players)[0].host}/count")
     """ messages = [
         (
             aiocoap.Message(
@@ -81,28 +126,6 @@ async def start_game(players: set[Player]):
         )
         for player in players
     ] """
-
-    def observation_callback(response):
-        print("callback: %r" % response.payload)
-
-    message = aiocoap.Message(code=aiocoap.Code.GET)
-    message.set_request_uri(f"coap://{list(players)[0].host}/count")
-    # set observe bit from None to 0
-    message.opt.observe = 0
-    observation_is_over = asyncio.get_event_loop().create_future()
-
-    request = protocol.request(message)
-    try:
-        if request.observation:
-            request.observation.register_callback(observation_callback)
-
-            await request.response
-            await observation_is_over
-    finally:
-        if not request.response.done():
-            request.response.cancel()
-        if request.observation and not request.observation.cancelled:
-            request.observation.cancel()
 
 
 async def main():
