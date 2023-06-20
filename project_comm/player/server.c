@@ -40,18 +40,22 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx);
 static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx);
+static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                                    coap_request_ctx_t *ctx);
 
 /* CoAP resources. Must be sorted by path (ASCII order). */
 static const coap_resource_t _resources[] = {
     { "/assign_player_id", COAP_PUT, _assign_player_id_handler, NULL },
     { "/count", COAP_GET, _count_handler, NULL },
-    { "/set_to_winner", COAP_PUT, _set_to_winner_handler, NULL },
-    { "/set_to_looser", COAP_PUT, _set_to_looser_handler, NULL },
+    { "/set_to_winner", COAP_POST, _set_to_winner_handler, NULL },
+    { "/set_to_looser", COAP_POST, _set_to_looser_handler, NULL },
+    { "/fake_pushup", COAP_POST, _fake_pushup_handler, NULL },
 };
 
 static const char *_link_params[] = {
     ";rt=\"pushups_player\"",
     ";ct=0;rt=\"pushups_player\";obs",
+    ";rt=\"pushups_player\"",
     ";rt=\"pushups_player\"",
     ";rt=\"pushups_player\"",
 };
@@ -85,7 +89,7 @@ static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
     return res;
 }
 
-void notify_observers(void)
+void notify_count_observers(void)
 {
     size_t len;
     uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
@@ -169,11 +173,6 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     (void)ctx;
     set_led_color(LED_COLOR_GREEN);
 
-    // TODO REMOVE THIS START
-    pushup_count++;
-    notify_observers();
-    // TODO REMOVE THIS END
-
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
 
@@ -182,6 +181,17 @@ static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 {
     (void)ctx;
     set_led_color(LED_COLOR_RED);
+
+    return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+}
+
+static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                                    coap_request_ctx_t *ctx)
+{
+    (void)ctx;
+
+    pushup_count++;
+    notify_count_observers();
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
