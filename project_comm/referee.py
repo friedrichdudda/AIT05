@@ -6,10 +6,12 @@ from enum import Enum
 WINNING_PUSHUP_COUNT = 4
 
 
-class Color(Enum):
-    RED = 0
-    GREEN = 1
+class PlayerColor(Enum):
+    YELLOW = 0
+    ORANGE = 1
     BLUE = 2
+    PINK = 3
+    PURPLE = 4
 
 
 class Player:
