@@ -1,13 +1,13 @@
 # Default Makefile, for host native GNRC-based networking
 
 # name of your application
-APPLICATION = gcoap_example
+APPLICATION = pushup_contest
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
 
 # This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(CURDIR)/RIOT
+RIOTBASE ?= $(CURDIR)/../../RIOT
 
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
@@ -45,17 +45,20 @@ endif
 
 USEMODULE += gcoap
 
+USEMODULE += cord_epsim
+
 # Required by gcoap example
 USEMODULE += od
 USEMODULE += fmt
 USEMODULE += netutils
 USEMODULE += random
-# Add also the shell, some shell commands
-# we want to use SAUL:
+# Saul
 USEMODULE += saul_default
+# Add also the shell, some shell commands
 USEMODULE += shell
 USEMODULE += shell_cmds_default
 USEMODULE += ps
+USEMODULE += xtimer
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
@@ -98,3 +101,22 @@ ifndef CONFIG_KCONFIG_MODULE_GCOAP
 GCOAP_RESEND_BUFS_MAX ?= 2
 CFLAGS += -DCONFIG_GCOAP_RESEND_BUFS_MAX=$(GCOAP_RESEND_BUFS_MAX)
 endif
+
+# The RD server's address must be defined by the build environment by setting
+# the RD_ADDR environment variable. Per default, this value is set to the
+# loopback address for enabling the build tests to successfully build this
+# example.
+RD_ADDR ?= \"[affe::1]\"
+CFLAGS += -DRD_ADDR=$(RD_ADDR)
+
+# For debugging and demonstration purposes, we limit the lifetime to 60s
+# Set CONFIG_CORD_LT only if not being set via Kconfig
+ifndef CONFIG_CORD_LT
+CFLAGS += -DCONFIG_CORD_LT=60
+endif
+
+
+
+CFLAGS += -DCONFIG_GCOAP_PDU_BUF_SIZE=256
+CFLAGS += -DSAUL_DEVICE_COUNT=14
+
