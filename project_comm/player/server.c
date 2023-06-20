@@ -27,6 +27,8 @@
 
 #define STARTUP_DELAY       (3U)    /* wait 3s before sending first request*/
 
+static uint32_t pushup_count = 0;
+
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
 
@@ -49,7 +51,7 @@ static const coap_resource_t _resources[] = {
 
 static const char *_link_params[] = {
     ";rt=\"pushups_player\"",
-    ";rt=\"pushups_player\";obs",
+    ";ct=0;rt=\"pushups_player\";obs",
     ";rt=\"pushups_player\"",
     ";rt=\"pushups_player\"",
 };
@@ -81,6 +83,31 @@ static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
     }
 
     return res;
+}
+
+void notify_observers(void)
+{
+    size_t len;
+    uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
+    coap_pkt_t pdu;
+
+    /* send Observe notification for /count */
+    switch (gcoap_obs_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE,
+                           &_resources[1])) {
+    case GCOAP_OBS_INIT_OK:
+        printf("Creating /count notification\n");
+        coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
+        len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
+        len += fmt_u32_dec((char *)pdu.payload, pushup_count);
+        gcoap_obs_send(&buf[0], len, &_resources[1]);
+        break;
+    case GCOAP_OBS_INIT_UNUSED:
+        printf("No observer for /count\n");
+        break;
+    case GCOAP_OBS_INIT_ERR:
+        printf("Error initializing /count notification\n");
+        break;
+    }
 }
 
 void set_led_color(led_color_t color)
@@ -115,6 +142,8 @@ static ssize_t _assign_player_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t l
 {
     (void)ctx;
 
+    printf("\n\n SET PLAYER ID\n\n");
+
     // TODO set color based on id in payload
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
@@ -125,9 +154,13 @@ static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 {
     (void)ctx;
 
-    // Return current pushup count
+    gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
+    coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
+    size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
-    return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+    /* write the response buffer with the request count value */
+    resp_len += fmt_u32_dec((char *)pdu->payload, pushup_count);
+    return resp_len;
 }
 
 static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
@@ -135,6 +168,11 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 {
     (void)ctx;
     set_led_color(LED_COLOR_GREEN);
+
+    // TODO REMOVE THIS START
+    pushup_count++;
+    notify_observers();
+    // TODO REMOVE THIS END
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
