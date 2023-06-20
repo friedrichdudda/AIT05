@@ -95,12 +95,18 @@ static void _resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t* pdu,
                 || coap_get_code_class(pdu) == COAP_CLASS_CLIENT_FAILURE
                 || coap_get_code_class(pdu) == COAP_CLASS_SERVER_FAILURE) {
             /* Expecting diagnostic payload in failure cases */
-            printf(", %u bytes\n%.*s\n", pdu->payload_len, pdu->payload_len,
-                                                          (char *)pdu->payload);
+            
+            printf(", %u bytes\n%.*s\n", pdu->payload_len, pdu->payload_len, (char *)pdu->payload);
+            // printf(", %u bytes\n", pdu->payload_len);
+            // for (int i = 0; i<5;i++){
+            //     printf("\n%.*s\n", pdu->payload_len, (char *)pdu->payload);
+            // }                                              
+                                                    
         }
         else {
             printf(", %u bytes\n", pdu->payload_len);
-            od_hex_dump(pdu->payload, pdu->payload_len, OD_WIDTH_DEFAULT);
+                od_hex_dump(pdu->payload, pdu->payload_len, OD_WIDTH_DEFAULT);
+            
         }
     }
     else {

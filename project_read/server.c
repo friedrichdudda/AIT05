@@ -18,11 +18,12 @@
  *
  * @}
  */
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
 
 #include "fmt.h"
 #include "net/gcoap.h"
@@ -127,12 +128,14 @@ size_t phydat_to_str(const phydat_t *data, const uint8_t dim, char* buf, const s
         assert(dim == 3);
         buf_pos += snprintf(buf + buf_pos, buf_len,"%02d:%02d:%02d\n",
                data->val[2], data->val[1], data->val[0]);
+            //   printf("%02d:%02d:%02d\n",data->val[2], data->val[1], data->val[0]);
         return buf_pos;
     }
     if (data->unit == UNIT_DATE) {
         assert(dim == 3);
         buf_pos += snprintf(buf + buf_pos, buf_len,"%04d-%02d-%02d\n",
                data->val[2], data->val[1], data->val[0]);
+            //   printf("%02d:%02d:%02d\n",data->val[2], data->val[1], data->val[0]);
         return buf_pos;
     }
 
@@ -193,9 +196,10 @@ size_t phydat_to_str(const phydat_t *data, const uint8_t dim, char* buf, const s
     } else {
         return dev->name;
     }
-} */
+} */   
 static ssize_t _saul_get_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
 {
+    printf("#### START #####\n");
     (void)ctx;
     /* write the RIOT board name in the response buffer */
     saul_reg_t *dev = saul_reg_find_name(ctx->resource->path + 1);
@@ -203,15 +207,63 @@ static ssize_t _saul_get_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
     int buf_pos = 0;
     
     /* read coap method type in packet */
+    
     unsigned method_flag = coap_method2flag(coap_get_code_detail(pdu));
     switch (method_flag) {
         case COAP_GET: {
-            gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-            coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-            size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
-            phydat_t res;
-            int dim = saul_reg_read(dev, &res);
-            buf_pos = phydat_to_str(&res, dim, (char*)pdu->payload, pdu->payload_len);
+            size_t resp_len;
+            
+            led_off();
+            
+            int* data_storage = malloc (sizeof (int) * 1000);
+
+            int sum = 0;
+            int cnt = 0;
+            bool up_detected = false;
+            
+            for (int i = 0; i<150;i++){
+                gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
+                coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
+                resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
+                phydat_t res;
+                int dim = saul_reg_read(dev, &res);
+                buf_pos = phydat_to_str(&res, dim, (char*)pdu->payload, pdu->payload_len);
+                
+        
+                // data_storage[0][i] = res.val[0];
+                // data_storage[1][i] = res.val[1];
+                data_storage[i] = res.val[2];
+                
+                printf("%d\n", res.val[2]-1044);
+                sum += (res.val[2]-1044);
+                cnt++;
+                
+                
+                if(sum > 250){
+                    printf("\nup\n");
+                    sum = 0;
+                    up_detected = true;
+                } else if (sum < -250){
+                    printf("\ndown\n");
+                    sum = 0;
+                    if(up_detected){
+                        printf("\n****Repetition****\n\n");
+                        up_detected = false;
+                        led_on();
+                        cnt = 0
+                    }
+                }
+                if(cnt == 4) {
+                    cnt = 0;
+                    sum = 0;
+                    led_off();
+                }
+                
+                xtimer_msleep(200);
+            }  
+            
+            free(data_storage);
+            printf("\n");
             return resp_len + buf_pos;
         }
         case COAP_PUT: {
@@ -227,6 +279,9 @@ static ssize_t _saul_get_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
 
 void server_init(void)
 {
+
+//led_on();
+
 #if IS_USED(MODULE_GCOAP_DTLS)
     int res = credman_add(&credential);
     if (res < 0 && res != CREDMAN_EXIST) {
@@ -271,4 +326,18 @@ void server_init(void)
     };
 
     gcoap_register_listener(&_listener);
+}
+
+static void led_on(){
+    saul_reg_t *dev = saul_reg_find_nth(1);
+    phydat_t data;
+    data.val[0] = 1;
+    saul_reg_write(dev, &data);
+}
+
+static void led_off(){
+    saul_reg_t *dev = saul_reg_find_nth(1);
+    phydat_t data;
+    data.val[0] = 0;
+    saul_reg_write(dev, &data);
 }
