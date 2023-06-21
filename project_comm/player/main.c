@@ -10,6 +10,7 @@
 #include "flash_utils.h"
 #include "saul_reg.h"
 #include "saul.h"
+#include "thread.h"
 #include "net/cord/epsim.h"
 #include "net/cord/common.h"
 #include "net/gnrc/netif.h"
@@ -26,6 +27,11 @@
 
 #define STARTUP_DELAY       (3U)    /* wait 3s before sending first request*/
 
+#define SAUL_LED_RED_ID (0)
+#define SAUL_LED_GREEN_ID (1)
+#define SAUL_LED_BLUE_ID (2)
+#define SAUL_ACCELEROMETER_NAME ("mma8x5x")
+
 typedef enum {
     LED_COLOR_OFF,
     LED_COLOR_RED,
@@ -35,6 +41,11 @@ typedef enum {
 
 static uint32_t pushup_count = 0;
 static led_color_t player_color = 0;
+
+static void run_pushup_detection(void);
+void *pushup_detection_thread(void *arg);
+char pushup_detection_thread_stack[THREAD_STACKSIZE_MAIN];
+
 
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
@@ -121,11 +132,11 @@ void notify_count_observers(void)
     }
 }
 
-void set_led_color(led_color_t color)
+static void set_led_color(led_color_t color)
 {
-    saul_reg_t *red = saul_reg_find_nth(0);
-    saul_reg_t *green = saul_reg_find_nth(1);
-    saul_reg_t *blue = saul_reg_find_nth(2);
+    saul_reg_t *red = saul_reg_find_nth(SAUL_LED_RED_ID);
+    saul_reg_t *green = saul_reg_find_nth(SAUL_LED_GREEN_ID);
+    saul_reg_t *blue = saul_reg_find_nth(SAUL_LED_BLUE_ID);
 
     phydat_t off = {
         .val = { 0 }
@@ -153,8 +164,15 @@ static ssize_t _assign_color_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t le
 {
     (void)ctx;
 
+    printf("COAP: Set Color ID\n");
+
     player_color = (led_color_t)atoi((char *)pdu->payload);
     set_led_color(player_color);
+
+    /* run pushup detection in its own thread */
+    thread_create(pushup_detection_thread_stack, sizeof(pushup_detection_thread_stack),
+                  THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+                  pushup_detection_thread, NULL, "pushup_detection_thread");
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
@@ -163,6 +181,7 @@ static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                               coap_request_ctx_t *ctx)
 {
     (void)ctx;
+    printf("COAP: Count\n");
 
     gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
     coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -176,6 +195,7 @@ static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
+    printf("COAP: Set to winner\n");
     (void)ctx;
     while (true) {
         set_led_color(LED_COLOR_OFF);
@@ -190,6 +210,7 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
+    printf("COAP: Set to looser\n");
     (void)ctx;
     set_led_color(LED_COLOR_OFF);
 
@@ -200,11 +221,79 @@ static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                     coap_request_ctx_t *ctx)
 {
     (void)ctx;
+    printf("COAP: Fake pushup\n");
 
     pushup_count++;
     notify_count_observers();
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+}
+
+void *pushup_detection_thread(void *arg)
+{
+    printf("Started pushup detection thread\n");
+    (void)arg;
+
+    run_pushup_detection();
+
+    return NULL;
+}
+
+static void run_pushup_detection(void)
+{
+    printf("Started pushup detection\n");
+    saul_reg_t *dev = saul_reg_find_name(SAUL_ACCELEROMETER_NAME);
+
+    int *data_storage = malloc(sizeof(int) * 1000);
+
+    int sum = 0;
+    int cnt = 0;
+    bool up_detected = false;
+
+    while (true) {
+        for (int i = 0; i < 150; i++) {
+            phydat_t res;
+            saul_reg_read(dev, &res);
+
+            // data_storage[0][i] = res.val[0];
+            // data_storage[1][i] = res.val[1];
+            data_storage[i] = res.val[2];
+
+            printf("%d\n", res.val[2] - 1044);
+            sum += (res.val[2] - 1044);
+            cnt++;
+
+
+            if (sum > 250) {
+                printf("\nup\n");
+                sum = 0;
+                up_detected = true;
+            }
+            else if (sum < -250) {
+                printf("\ndown\n");
+                sum = 0;
+                if (up_detected) {
+                    printf("\n****Repetition****\n\n");
+                    up_detected = false;
+                    set_led_color(LED_COLOR_OFF);
+                    cnt = 0;
+
+                    /* update pushups counter and notify observers */
+                    pushup_count++;
+                    notify_count_observers();
+                }
+            }
+            if (cnt == 4) {
+                cnt = 0;
+                sum = 0;
+                set_led_color(player_color);
+            }
+
+            xtimer_msleep(200);
+        }
+        free(data_storage);
+        printf("\n");
+    }
 }
 
 int main(void)
