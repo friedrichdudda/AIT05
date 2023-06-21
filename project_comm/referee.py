@@ -66,7 +66,7 @@ async def discover_players(rd_address: str):
         lines = payload.split(",")
         endpoints = {str(line.split(";")[0].split("/")[2]) for line in lines}
         player = {
-            Player(endpoint, PlayerColor(index))
+            Player(endpoint, PlayerColor(index + 1))
             for index, endpoint in enumerate(endpoints)
         }
         return player
@@ -80,7 +80,7 @@ async def start_game(players: set[Player]):
         message = aiocoap.Message(
             code=aiocoap.Code.PUT,
             uri=f"coap://{player.host}/assign_color_id",
-            payload=f"{index + 1}".encode("ascii"),
+            payload=f"{player.color}".encode("ascii"),
         )
 
         await protocol.request(message).response
