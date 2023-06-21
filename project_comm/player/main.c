@@ -166,6 +166,8 @@ static ssize_t _assign_color_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t le
 
     printf("COAP: Set Color ID\n");
 
+    printf("PLAYER COLOR: %d\n", atoi((char *)pdu->payload));
+
     player_color = (led_color_t)atoi((char *)pdu->payload);
     set_led_color(player_color);
 
@@ -223,6 +225,12 @@ static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     (void)ctx;
     printf("COAP: Fake pushup\n");
 
+    set_led_color(LED_COLOR_OFF);
+
+    xtimer_msleep(1000);
+
+    set_led_color(LED_COLOR_BLUE);
+
     pushup_count++;
     notify_count_observers();
 
@@ -249,6 +257,8 @@ static void run_pushup_detection(void)
     int sum = 0;
     int cnt = 0;
     bool up_detected = false;
+
+    set_led_color(player_color);
 
     while (true) {
         for (int i = 0; i < 150; i++) {
@@ -300,6 +310,8 @@ int main(void)
 {
     char ep_str[CONFIG_SOCK_URLPATH_MAXLEN];
     uint16_t ep_port;
+
+    set_led_color(LED_COLOR_BLUE);
 
     puts("Simplified CoRE RD registration example\n");
 
