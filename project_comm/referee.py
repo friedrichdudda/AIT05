@@ -7,11 +7,10 @@ WINNING_PUSHUP_COUNT = 4
 
 
 class PlayerColor(Enum):
-    YELLOW = 0
-    ORANGE = 1
-    BLUE = 2
-    PINK = 3
-    PURPLE = 4
+    OFF = 0
+    RED = 1
+    GREEN = 2
+    BLUE = 3
 
 
 class Player:
@@ -67,7 +66,8 @@ async def discover_players(rd_address: str):
         lines = payload.split(",")
         endpoints = {str(line.split(";")[0].split("/")[2]) for line in lines}
         player = {
-            Player(endpoint, PlayerColor(index)) for index, endpoint in enumerate(endpoints)
+            Player(endpoint, PlayerColor(index))
+            for index, endpoint in enumerate(endpoints)
         }
         return player
 
@@ -79,8 +79,8 @@ async def start_game(players: set[Player]):
     for index, player in enumerate(players):
         message = aiocoap.Message(
             code=aiocoap.Code.PUT,
-            uri=f"coap://{player.host}/assign_player_id",
-            payload=f"{index}".encode("ascii"),
+            uri=f"coap://{player.host}/assign_color_id",
+            payload=f"{index + 1}".encode("ascii"),
         )
 
         await protocol.request(message).response

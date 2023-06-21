@@ -27,21 +27,14 @@
 #define STARTUP_DELAY       (3U)    /* wait 3s before sending first request*/
 
 typedef enum {
-    STATUS_COLOR_OFF,
-    STATUS_COLOR_RED,
-    STATUS_COLOR_GREEN,
-} status_color_t;
-
-typedef enum {
-    PLAYER_COLOR_YELLOW = 0,
-    PLAYER_COLOR_ORANGE = 1,
-    PLAYER_COLOR_BLUE   = 2,
-    PLAYER_COLOR_PINK   = 3,
-    PLAYER_COLOR_PURPLE = 4,
-} player_color_t;
+    LED_COLOR_OFF,
+    LED_COLOR_RED,
+    LED_COLOR_GREEN,
+    LED_COLOR_BLUE,
+} led_color_t;
 
 static uint32_t pushup_count = 0;
-static player_color_t player_color = 0;
+static led_color_t player_color = 0;
 
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
@@ -128,7 +121,7 @@ void notify_count_observers(void)
     }
 }
 
-void set_status_color(status_color_t color)
+void set_led_color(led_color_t color)
 {
     saul_reg_t *red = saul_reg_find_nth(0);
     saul_reg_t *green = saul_reg_find_nth(1);
@@ -148,56 +141,10 @@ void set_status_color(status_color_t color)
 
     /* turn on the required led color */
     switch (color) {
-    case STATUS_COLOR_OFF: break;
-    case STATUS_COLOR_RED: saul_reg_write(red, &on); break;
-    case STATUS_COLOR_GREEN: saul_reg_write(green, &on); break;
-    }
-}
-
-void set_player_color(player_color_t color)
-{
-    saul_reg_t *red = saul_reg_find_nth(0);
-    saul_reg_t *green = saul_reg_find_nth(1);
-    saul_reg_t *blue = saul_reg_find_nth(2);
-
-    phydat_t off = {
-        .val = { 0 }
-    };
-    phydat_t on = {
-        .val = { 1 }
-    };
-
-    /* turn all off first */
-    saul_reg_write(red, &off);
-    saul_reg_write(green, &off);
-    saul_reg_write(blue, &off);
-
-    /* turn on the required led color */
-    switch (color) {
-    case PLAYER_COLOR_YELLOW:
-        // TODO implement the correct color mixture
-        saul_reg_write(red, &on);
-        break;
-
-    case PLAYER_COLOR_ORANGE:
-        // TODO implement the correct color mixture
-        saul_reg_write(red, &on);
-        break;
-
-    case PLAYER_COLOR_BLUE:
-        // TODO implement the correct color mixture
-        saul_reg_write(red, &on);
-        break;
-
-    case PLAYER_COLOR_PINK:
-        // TODO implement the correct color mixture
-        saul_reg_write(red, &on);
-        break;
-
-    case PLAYER_COLOR_PURPLE:
-        // TODO implement the correct color mixture
-        saul_reg_write(red, &on);
-        break;
+    case LED_COLOR_OFF: break;
+    case LED_COLOR_RED: saul_reg_write(red, &on); break;
+    case LED_COLOR_GREEN: saul_reg_write(green, &on); break;
+    case LED_COLOR_BLUE: saul_reg_write(blue, &on); break;
     }
 }
 
@@ -206,7 +153,8 @@ static ssize_t _assign_color_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t le
 {
     (void)ctx;
 
-    player_color = (player_color_t)atoi((char *)pdu->payload);
+    player_color = (led_color_t)atoi((char *)pdu->payload);
+    set_led_color(player_color);
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
@@ -229,7 +177,12 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
     (void)ctx;
-    set_status_color(STATUS_COLOR_GREEN);
+    while (true) {
+        set_led_color(LED_COLOR_OFF);
+        xtimer_msleep(200);
+        set_led_color(player_color);
+        xtimer_msleep(200);
+    }
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
@@ -238,7 +191,7 @@ static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
     (void)ctx;
-    set_status_color(STATUS_COLOR_RED);
+    set_led_color(LED_COLOR_OFF);
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
