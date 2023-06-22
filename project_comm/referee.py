@@ -5,6 +5,7 @@ from enum import Enum
 import os
 import re
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 
 WINNING_PUSHUP_COUNT = 10
@@ -20,6 +21,7 @@ class PlayerColor(Enum):
 class Player:
     host: str
     color: PlayerColor
+    count: int = 0
 
     def __init__(self, host: str, color: PlayerColor):
         self.host = host
@@ -86,18 +88,8 @@ async def discover_players(rd_address: str):
         return player
 
 
-async def start_game(players: set[Player]):
+async def observe_players(players: set[Player]):
     protocol = await aiocoap.Context.create_client_context()
-
-    # assign id to each player and start the game
-    for player in players:
-        message = aiocoap.Message(
-            code=aiocoap.Code.PUT,
-            uri=f"coap://{player.host}/assign_color_id",
-            payload=f"{player.color.value}".encode("ascii"),
-        )
-
-        await protocol.request(message).response
 
     # observe the count of each player
     def observation_callback(response):
@@ -108,6 +100,9 @@ async def start_game(players: set[Player]):
                 players,
             )
         )[0]
+
+        player.count += 1
+
         if pushup_count == WINNING_PUSHUP_COUNT:
             print(f"The winner is: {player.color.name} {player.host}")
             play_winner_sound(player.color)
@@ -136,14 +131,47 @@ async def start_game(players: set[Player]):
             if request.observation and not request.observation.cancelled:
                 request.observation.cancel()
 
-    print("Available players:")
-    for player in players:
-        print(f"{player.color.name} ({player.host})")
-
-    print("\nStart Game!\n")
-
     tasks = [observe_resource(f"coap://{player.host}/count") for player in players]
     await asyncio.gather(*tasks)
+
+
+async def start_game_cli(players: set[Player]):
+    protocol = await aiocoap.Context.create_client_context()
+
+    async def ainput(prompt: str = ""):
+        with ThreadPoolExecutor(1, "ainput") as executor:
+            return (
+                await asyncio.get_event_loop().run_in_executor(executor, input, prompt)
+            ).rstrip()
+
+    while True:
+        print("")
+        command = await ainput("")
+
+        if command == "help":
+            print("Available commands: list | start | stats")
+
+        elif command == "list":
+            print("Available players:")
+            for player in players:
+                print(f"{player.color.name} ({player.host})")
+
+        elif command == "start":
+            # assign id to each player and start the game
+            for player in players:
+                message = aiocoap.Message(
+                    code=aiocoap.Code.PUT,
+                    uri=f"coap://{player.host}/assign_color_id",
+                    payload=f"{player.color.value}".encode("ascii"),
+                )
+
+                await protocol.request(message).response
+
+            print("Game started:")
+
+        elif command == "stats":
+            for player in players:
+                print(f"{player.color.name}: {player.count}")
 
 
 def play_counter_sound(player_color: PlayerColor) -> None:
@@ -192,7 +220,10 @@ async def main():
                 logging.log(logging.INFO, player.host)
 
             # Start Game
-            await start_game(players)
+            await asyncio.gather(
+                observe_players(players),
+                start_game_cli(players),
+            )
 
 
 if __name__ == "__main__":
