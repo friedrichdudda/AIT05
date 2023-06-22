@@ -105,8 +105,25 @@ async def observe_players(players: set[Player]):
 
         if pushup_count == WINNING_PUSHUP_COUNT:
             print(f"The winner is: {player.color.name} {player.host}")
+
+            # set player to winning state
+            message = aiocoap.Message(
+                code=aiocoap.Code.POST,
+                uri=f"coap://{player.host}/set_to_winner",
+            )
+            protocol.request(message).response
+
+            # set other players to loosing state
+            for loosing_player in players:
+                if loosing_player != player:
+                    message = aiocoap.Message(
+                        code=aiocoap.Code.POST,
+                        uri=f"coap://{loosing_player.host}/set_to_looser",
+                    )
+                    protocol.request(message).response
+
+            # play winning player sound
             play_winner_sound(player.color)
-            exit()
         else:
             print(f"{player.color.name} pushup count: {pushup_count}")
             play_counter_sound(player.color)
@@ -149,7 +166,7 @@ async def start_game_cli(players: set[Player]):
         command = await ainput("")
 
         if command == "help":
-            print("Available commands: list | start | stats")
+            print("Available commands: list | start | stats | reset")
 
         elif command == "list":
             print("Available players:")
@@ -173,6 +190,19 @@ async def start_game_cli(players: set[Player]):
             for player in players:
                 print(f"{player.color.name}: {player.count}")
 
+        elif command == "reset":
+            # reset count of all players
+            for player in players:
+                player.count = 0
+                message = aiocoap.Message(
+                    code=aiocoap.Code.POST,
+                    uri=f"coap://{player.host}/reset",
+                )
+
+                await protocol.request(message).response
+
+            print("Players have been reset.")
+
 
 def play_counter_sound(player_color: PlayerColor) -> None:
     if player_color == PlayerColor.GREEN:
@@ -193,7 +223,7 @@ def play_winner_sound(player_color: PlayerColor) -> None:
 
 
 def play_audio_file(file_url: str):
-    subprocess.run(
+    """subprocess.run(
         [
             "ffplay",
             "-v",
@@ -202,7 +232,7 @@ def play_audio_file(file_url: str):
             "-autoexit",
             file_url,
         ],
-    )
+    )"""
 
 
 async def main():

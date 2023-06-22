@@ -41,6 +41,7 @@ typedef enum {
 
 static uint32_t pushup_count = 0;
 static led_color_t player_color = 0;
+static bool reset = false;
 
 static void run_pushup_detection(void);
 void *pushup_detection_thread(void *arg);
@@ -50,7 +51,9 @@ char pushup_detection_thread_stack[THREAD_STACKSIZE_MAIN];
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
 
-static ssize_t _assign_color_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                                        coap_request_ctx_t *ctx);
+static ssize_t _start_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                         coap_request_ctx_t *ctx);
 static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                               coap_request_ctx_t *ctx);
@@ -60,19 +63,25 @@ static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx);
 static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                     coap_request_ctx_t *ctx);
+static ssize_t _reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                                    coap_request_ctx_t *ctx);
 
 /* CoAP resources. Must be sorted by path (ASCII order). */
 static const coap_resource_t _resources[] = {
-    { "/assign_color_id", COAP_PUT, _assign_color_id_handler, NULL },
+    { "/assign_color", COAP_PUT, _assign_color_handler, NULL },
+    { "/start", COAP_POST, _start_handler, NULL },
     { "/count", COAP_GET, _count_handler, NULL },
     { "/set_to_winner", COAP_POST, _set_to_winner_handler, NULL },
     { "/set_to_looser", COAP_POST, _set_to_looser_handler, NULL },
     { "/fake_pushup", COAP_POST, _fake_pushup_handler, NULL },
+    { "/reset", COAP_POST, _reset_handler, NULL },
 };
 
 static const char *_link_params[] = {
     ";rt=\"pushups_player\"",
+    ";rt=\"pushups_player\"",
     ";ct=0;rt=\"pushups_player\";obs",
+    ";rt=\"pushups_player\"",
     ";rt=\"pushups_player\"",
     ";rt=\"pushups_player\"",
     ";rt=\"pushups_player\"",
@@ -159,17 +168,29 @@ static void set_led_color(led_color_t color)
     }
 }
 
-static ssize_t _assign_color_id_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                         coap_request_ctx_t *ctx)
 {
     (void)ctx;
 
-    printf("COAP: Set Color ID\n");
+    printf("COAP: Set Color\n");
 
     printf("PLAYER COLOR: %d\n", atoi((char *)pdu->payload));
 
     player_color = (led_color_t)atoi((char *)pdu->payload);
     set_led_color(player_color);
+
+    return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+}
+
+static ssize_t _start_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                                      coap_request_ctx_t *ctx)
+{
+    (void)ctx;
+
+    printf("COAP: Start\n");
+
+    reset = false;
 
     /* run pushup detection in its own thread */
     thread_create(pushup_detection_thread_stack, sizeof(pushup_detection_thread_stack),
@@ -197,9 +218,15 @@ static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
-    printf("COAP: Set to winner\n");
     (void)ctx;
-    while (true) {
+
+    printf("COAP: Set to winner\n");
+
+    thread_create(pushup_detection_thread_stack, sizeof(pushup_detection_thread_stack),
+                  THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+                  pushup_detection_thread, NULL, "pushup_detection_thread");
+
+    while (!reset) {
         set_led_color(LED_COLOR_OFF);
         xtimer_msleep(200);
         set_led_color(player_color);
@@ -237,6 +264,19 @@ static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
 
+static ssize_t _reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
+                                    coap_request_ctx_t *ctx)
+{
+    (void)ctx;
+
+    reset = true;
+    pushup_count = 0;
+
+    notify_count_observers();
+
+    return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+}
+
 void *pushup_detection_thread(void *arg)
 {
     printf("Started pushup detection thread\n");
@@ -266,6 +306,10 @@ static void run_pushup_detection(void)
 
     while (true) {
         for (int i = 0; i < 150; i++) {
+            if (reset) {
+                thread_yield();
+            }
+
             saul_reg_read(dev, &res);
 
             // data_storage[0][i] = res.val[0];
