@@ -3,7 +3,9 @@ import asyncio
 import aiocoap
 from enum import Enum
 import os
-from playsound import playsound
+from pydub import AudioSegment
+from pydub.playback import play
+import re
 
 WINNING_PUSHUP_COUNT = 4
 
@@ -25,7 +27,6 @@ class Player:
 
 
 # logging setup
-
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
@@ -54,7 +55,7 @@ async def discover_players(rd_address: str):
 
     message = aiocoap.Message(
         code=aiocoap.Code.GET,
-        uri=f"coap://{rd_address}/resource-lookup/?rt=pushups_player",
+        uri=f"coap://{rd_address}/endpoint-lookup/?rt=pushups_player",
     )
 
     try:
@@ -66,7 +67,13 @@ async def discover_players(rd_address: str):
     else:
         payload = response.payload.decode("utf-8")
         lines = payload.split(",")
-        endpoints = {str(line.split(";")[0].split("/")[2]) for line in lines}
+        endpoints = {
+            re.search(r'base="(.*?)"', line).group(1).replace("coap://", "")
+            for line in lines
+        }
+        print("\n\nASDF\n\n")
+        print(endpoints)
+        print("\n\nASDF\n\n")
         player = {
             Player(endpoint, PlayerColor(index + 1))
             for index, endpoint in enumerate(endpoints)
@@ -78,7 +85,7 @@ async def start_game(players: set[Player]):
     protocol = await aiocoap.Context.create_client_context()
 
     # assign id to each player and start the game
-    for index, player in enumerate(players):
+    for player in players:
         message = aiocoap.Message(
             code=aiocoap.Code.PUT,
             uri=f"coap://{player.host}/assign_color_id",
@@ -91,7 +98,6 @@ async def start_game(players: set[Player]):
 
     # observe the count of each player
     def observation_callback(response):
-        print("callback: %r" % response.payload)
         pushup_count = int(response.payload)
         player = list(
             filter(
@@ -104,7 +110,7 @@ async def start_game(players: set[Player]):
             play_winner_sound(player.color)
             exit()
         else:
-            print(f"{player.color._name_}: {pushup_count}")
+            print(f"{player.color._name_} pushup count: {pushup_count}")
             play_counter_sound(player.color)
 
     async def observe_resource(uri: str):
@@ -133,19 +139,31 @@ async def start_game(players: set[Player]):
 
 def play_counter_sound(player_color: PlayerColor) -> None:
     if player_color == PlayerColor.GREEN:
-        playsound(f"{os.path.dirname(os.path.abspath(__file__))}/audio/gruen.mp3")
+        play(
+            AudioSegment.from_mp3(
+                f"{os.path.dirname(os.path.abspath(__file__))}/audio/gruen.mp3"
+            )
+        )
     elif player_color == PlayerColor.RED:
-        playsound(f"{os.path.dirname(os.path.abspath(__file__))}/audio/rot.mp3")
+        play(
+            AudioSegment.from_mp3(
+                f"{os.path.dirname(os.path.abspath(__file__))}/audio/rot.mp3"
+            )
+        )
 
 
 def play_winner_sound(player_color: PlayerColor) -> None:
     if player_color == PlayerColor.GREEN:
-        playsound(
-            f"{os.path.dirname(os.path.abspath(__file__))}/audio/gruen_hat_gewonnen.mp3"
+        play(
+            AudioSegment.from_mp3(
+                f"{os.path.dirname(os.path.abspath(__file__))}/audio/gruen_hat_gewonnen.mp3"
+            )
         )
     elif player_color == PlayerColor.RED:
-        playsound(
-            f"{os.path.dirname(os.path.abspath(__file__))}/audio/rot_hat_gewonnen.mp3"
+        play(
+            AudioSegment.from_mp3(
+                f"{os.path.dirname(os.path.abspath(__file__))}/audio/rot_hat_gewonnen.mp3"
+            )
         )
 
 
@@ -168,5 +186,6 @@ async def main():
 
 
 if __name__ == "__main__":
+    play_winner_sound(PlayerColor.RED)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
