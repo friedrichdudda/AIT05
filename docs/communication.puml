@@ -1,0 +1,12 @@
+@startuml
+title Kommunikation
+
+Kandidat --> Resource_Directory: register
+
+Schiedsrichter -> Schiedsrichter: discover Resource Directory via multicast
+Schiedsrichter --> Resource_Directory: .well-known/core?rt=core.rd*
+
+
+Kandidat -> Kandidat: reset and find coalitions
+Kandidat -> Schiedsrichter: confirm coalition
+@enduml

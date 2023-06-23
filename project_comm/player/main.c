@@ -256,35 +256,38 @@ static void run_pushup_detection(void)
 
     int sum = 0;
     int cnt = 0;
-    bool up_detected = false;
+    bool down_detected = false;
 
     set_led_color(player_color);
+    phydat_t res;
+    saul_reg_read(dev, &res);
+
+    int start_value = res.val[2];
 
     while (true) {
         for (int i = 0; i < 150; i++) {
-            phydat_t res;
             saul_reg_read(dev, &res);
 
             // data_storage[0][i] = res.val[0];
             // data_storage[1][i] = res.val[1];
             data_storage[i] = res.val[2];
 
-            printf("%d\n", res.val[2] - 1044);
-            sum += (res.val[2] - 1044);
+            printf("%d\n", res.val[2] - start_value);
+            sum += (res.val[2] - start_value);
             cnt++;
 
 
-            if (sum > 250) {
-                printf("\nup\n");
-                sum = 0;
-                up_detected = true;
-            }
-            else if (sum < -250) {
+            if (sum < -250) {
                 printf("\ndown\n");
                 sum = 0;
-                if (up_detected) {
+                down_detected = true;
+            }
+            else if (sum > 250) {
+                printf("\nup\n");
+                sum = 0;
+                if (down_detected) {
                     printf("\n****Repetition****\n\n");
-                    up_detected = false;
+                    down_detected = false;
                     set_led_color(LED_COLOR_OFF);
                     cnt = 0;
 
