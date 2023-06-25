@@ -1,12 +1,38 @@
 @startuml
 title Kommunikation
 
-Kandidat --> Resource_Directory: register
+participant Kandidat_1
+participant Kandidat_2
+participant Resource_Directory
+participant Schiedsrichter
 
-Schiedsrichter -> Schiedsrichter: discover Resource Directory via multicast
-Schiedsrichter --> Resource_Directory: .well-known/core?rt=core.rd*
+Kandidat_1 ->> Resource_Directory: register
+Kandidat_2 ->> Resource_Directory: register
+Schiedsrichter -> Schiedsrichter: discover Resource_Directory via multicast: /.well-known/core?rt=core.rd*
+Schiedsrichter -> Resource_Directory: /resource-lookup/?rt=pushups_player
+activate Resource_Directory
+Resource_Directory --> Schiedsrichter: return registered "Kandidaten"
+deactivate Resource_Directory
+Schiedsrichter ->> Kandidat_1: /assign_color_id red
+Schiedsrichter ->> Kandidat_2: /assign_color_id green
+Schiedsrichter ->> Kandidat_1: observe: /count
+Schiedsrichter ->> Kandidat_2: observe: /count
+loop Kandidat_1 pusup_count != WINNING_AMOUNT && Kandidat_2 pusup_count != WINNING_AMOUNT
+    opt Kandidat_1 pushup detected
+        Kandidat_1 -> Kandidat_1: pushup_count += 1
+        Kandidat_1 ->> Schiedsrichter: notify /count changed
+    end
+    opt Kandidat_2 pushup detected
+        Kandidat_2 -> Kandidat_2: pushup_count += 1
+        Kandidat_2 ->> Schiedsrichter: notify /count changed
+    end
+    alt Kandidat_1 pusup_count == WINNING_AMOUNT
+        Schiedsrichter ->> Kandidat_1: /set_to_winner
+        Schiedsrichter ->> Kandidat_2: /set_to_looser
+    else Kandidat_2 pushup_count == WINNING_AMOUNT
+        Schiedsrichter ->> Kandidat_2: /set_to_winner
+        Schiedsrichter ->> Kandidat_1: /set_to_looser
+    end
+end
 
-
-Kandidat -> Kandidat: reset and find coalitions
-Kandidat -> Schiedsrichter: confirm coalition
 @enduml
