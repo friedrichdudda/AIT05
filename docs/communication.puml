@@ -1,22 +1,20 @@
-@startuml
-title Kommunikation
-
+@startuml Kommunikation
 participant Kandidat_1
 participant Kandidat_2
 participant Resource_Directory
 participant Schiedsrichter
 
-Kandidat_1 ->> Resource_Directory: register
-Kandidat_2 ->> Resource_Directory: register
+Kandidat_1 ->> Resource_Directory: coap post: /register
+Kandidat_2 ->> Resource_Directory: coap post: /register
 Schiedsrichter -> Schiedsrichter: discover Resource_Directory via multicast: /.well-known/core?rt=core.rd*
-Schiedsrichter -> Resource_Directory: /resource-lookup/?rt=pushups_player
+Schiedsrichter -> Resource_Directory: coap get: /resource-lookup/?rt=pushups_player
 activate Resource_Directory
 Resource_Directory --> Schiedsrichter: return registered "Kandidaten"
 deactivate Resource_Directory
-Schiedsrichter ->> Kandidat_1: /assign_color_id red
-Schiedsrichter ->> Kandidat_2: /assign_color_id green
-Schiedsrichter ->> Kandidat_1: observe: /count
-Schiedsrichter ->> Kandidat_2: observe: /count
+Schiedsrichter ->> Kandidat_1: coap put: /assign_color_id [red]
+Schiedsrichter ->> Kandidat_2: coap put: /assign_color_id [green]
+Schiedsrichter ->> Kandidat_1: coap observe: /count
+Schiedsrichter ->> Kandidat_2: coap observe: /count
 loop Kandidat_1 pusup_count != WINNING_AMOUNT && Kandidat_2 pusup_count != WINNING_AMOUNT
     opt Kandidat_1 pushup detected
         Kandidat_1 -> Kandidat_1: pushup_count += 1
@@ -27,12 +25,11 @@ loop Kandidat_1 pusup_count != WINNING_AMOUNT && Kandidat_2 pusup_count != WINNI
         Kandidat_2 ->> Schiedsrichter: notify /count changed
     end
     alt Kandidat_1 pusup_count == WINNING_AMOUNT
-        Schiedsrichter ->> Kandidat_1: /set_to_winner
-        Schiedsrichter ->> Kandidat_2: /set_to_looser
+        Schiedsrichter ->> Kandidat_1: coap post: /set_to_winner
+        Schiedsrichter ->> Kandidat_2: coap post: /set_to_looser
     else Kandidat_2 pushup_count == WINNING_AMOUNT
-        Schiedsrichter ->> Kandidat_2: /set_to_winner
-        Schiedsrichter ->> Kandidat_1: /set_to_looser
+        Schiedsrichter ->> Kandidat_2: coap post: /set_to_winner
+        Schiedsrichter ->> Kandidat_1: coap post: /set_to_looser
     end
 end
-
 @enduml
