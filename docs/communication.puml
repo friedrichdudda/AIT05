@@ -4,6 +4,9 @@ participant Kandidat_2
 participant Resource_Directory
 participant Schiedsrichter
 
+!pragma teoz true
+Kandidat_1 -> Kandidat_1: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
+&Kandidat_2 -> Kandidat_2: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
 Kandidat_1 ->> Resource_Directory: coap post: /register
 Kandidat_2 ->> Resource_Directory: coap post: /register
 Schiedsrichter -> Schiedsrichter: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
@@ -15,7 +18,7 @@ Schiedsrichter ->> Kandidat_1: coap put: /assign_color_id [red]
 Schiedsrichter ->> Kandidat_2: coap put: /assign_color_id [green]
 Schiedsrichter ->> Kandidat_1: coap observe: /count
 Schiedsrichter ->> Kandidat_2: coap observe: /count
-loop Kandidat_1 pusup_count != WINNING_AMOUNT && Kandidat_2 pusup_count != WINNING_AMOUNT
+loop Kandidat_1 pusup_count != 10 && Kandidat_2 pusup_count != 10
     opt Kandidat_1 pushup detected
         Kandidat_1 -> Kandidat_1: pushup_count += 1
         Kandidat_1 ->> Schiedsrichter: notify /count changed
@@ -24,10 +27,10 @@ loop Kandidat_1 pusup_count != WINNING_AMOUNT && Kandidat_2 pusup_count != WINNI
         Kandidat_2 -> Kandidat_2: pushup_count += 1
         Kandidat_2 ->> Schiedsrichter: notify /count changed
     end
-    alt Kandidat_1 pusup_count == WINNING_AMOUNT
+    alt Kandidat_1 pusup_count == 10
         Schiedsrichter ->> Kandidat_1: coap post: /set_to_winner
         Schiedsrichter ->> Kandidat_2: coap post: /set_to_looser
-    else Kandidat_2 pushup_count == WINNING_AMOUNT
+    else Kandidat_2 pushup_count == 10
         Schiedsrichter ->> Kandidat_2: coap post: /set_to_winner
         Schiedsrichter ->> Kandidat_1: coap post: /set_to_looser
     end
