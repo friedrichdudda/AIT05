@@ -6,7 +6,7 @@ participant Schiedsrichter
 
 Kandidat_1 ->> Resource_Directory: coap post: /register
 Kandidat_2 ->> Resource_Directory: coap post: /register
-Schiedsrichter -> Schiedsrichter: discover Resource_Directory via multicast: /.well-known/core?rt=core.rd*
+Schiedsrichter -> Schiedsrichter: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
 Schiedsrichter -> Resource_Directory: coap get: /resource-lookup/?rt=pushups_player
 activate Resource_Directory
 Resource_Directory --> Schiedsrichter: return registered "Kandidaten"

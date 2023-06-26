@@ -2,6 +2,8 @@ import logging
 import asyncio
 import aiocoap
 from enum import Enum
+import os
+from playsound import playsound
 
 WINNING_PUSHUP_COUNT = 4
 
@@ -91,15 +93,18 @@ async def start_game(players: set[Player]):
     def observation_callback(response):
         print("callback: %r" % response.payload)
         pushup_count = int(response.payload)
+        player = list(
+            filter(
+                lambda player: player.host == str(response.remote.hostinfo),
+                players,
+            )
+        )[0]
         if pushup_count == WINNING_PUSHUP_COUNT:
-            winner = list(
-                filter(
-                    lambda player: player.host == str(response.remote.hostinfo),
-                    players,
-                )
-            )[0]
-
-            print(f"The winner is: {winner.color._name_} {winner.host}")
+            print(f"The winner is: {player.color._name_} {player.host}")
+            play_winner_sound(player.color)
+        else:
+            print(f"{player.color._name_}: {pushup_count}")
+            play_counter_sound(player.color)
 
     async def observe_resource(uri: str):
         message = aiocoap.Message(code=aiocoap.Code.GET)
@@ -125,6 +130,24 @@ async def start_game(players: set[Player]):
     await asyncio.gather(*tasks)
 
 
+def play_counter_sound(player_color: PlayerColor) -> None:
+    if player_color == PlayerColor.GREEN:
+        playsound(f"{os.path.dirname(os.path.abspath(__file__))}/audio/gruen.mp3")
+    elif player_color == PlayerColor.RED:
+        playsound(f"{os.path.dirname(os.path.abspath(__file__))}/audio/rot.mp3")
+
+
+def play_winner_sound(player_color: PlayerColor) -> None:
+    if player_color == PlayerColor.GREEN:
+        playsound(
+            f"{os.path.dirname(os.path.abspath(__file__))}/audio/gruen_hat_gewonnen.mp3"
+        )
+    elif player_color == PlayerColor.RED:
+        playsound(
+            f"{os.path.dirname(os.path.abspath(__file__))}/audio/rot_hat_gewonnen.mp3"
+        )
+
+
 async def main():
     # Discover resource dictionary via multicast
     resource_directory_ip_address = await discover_dictionary()
@@ -144,5 +167,6 @@ async def main():
 
 
 if __name__ == "__main__":
+    play_winner_sound(PlayerColor.GREEN)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
