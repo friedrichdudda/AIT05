@@ -102,6 +102,7 @@ async def start_game(players: set[Player]):
         if pushup_count == WINNING_PUSHUP_COUNT:
             print(f"The winner is: {player.color._name_} {player.host}")
             play_winner_sound(player.color)
+            exit()
         else:
             print(f"{player.color._name_}: {pushup_count}")
             play_counter_sound(player.color)
@@ -167,6 +168,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    play_winner_sound(PlayerColor.GREEN)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
