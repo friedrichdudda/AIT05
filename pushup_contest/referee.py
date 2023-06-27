@@ -179,7 +179,7 @@ async def start_game_cli(players: set[Player]):
         command = await ainput("")
 
         if command == "help":
-            print("Available commands: list | start | reset | stats")
+            print("Available commands: help | list | stats | start | reset")
 
         elif command == "list":
             print("Available players:")

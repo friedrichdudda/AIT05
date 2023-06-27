@@ -1,5 +1,5 @@
 @startuml Kommunikation
-title Kandidat Kommunikationsautomat
+title Spieler Kommunikationsautomat
 [*] --> Uninitialized
 Uninitialized : LED: Blue
 Uninitialized--> Initialized: coap: /assign_color {color}

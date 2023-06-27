@@ -1,42 +1,42 @@
 @startuml Kommunikation
 title System Kommunikationsablauf
 
-participant Kandidat_1
-participant Kandidat_2
+participant Spieler_1
+participant Spieler_2
 participant Resource_Directory
 participant Schiedsrichter
 
 !pragma teoz true
-Kandidat_1 -> Kandidat_1: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
-&Kandidat_2 -> Kandidat_2: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
-Kandidat_1 ->> Resource_Directory: coap post: /register
-Kandidat_2 ->> Resource_Directory: coap post: /register
+Spieler_1 -> Spieler_1: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
+&Spieler_2 -> Spieler_2: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
+Spieler_1 ->> Resource_Directory: coap post: /register
+Spieler_2 ->> Resource_Directory: coap post: /register
 Schiedsrichter -> Schiedsrichter: discover\nResource_Directory\nvia multicast:\ncoap get:\n/.well-known/core\n?rt=core.rd*
 Schiedsrichter -> Resource_Directory: coap get: /endpoint-lookup/?rt=pushups_player
 activate Resource_Directory
-Resource_Directory --> Schiedsrichter: return registered "Kandidaten"
+Resource_Directory --> Schiedsrichter: return registered "Spieler"
 deactivate Resource_Directory
-Schiedsrichter ->> Kandidat_1: coap put: /assign_color [red]
-Schiedsrichter ->> Kandidat_2: coap put: /assign_color [green]
-Schiedsrichter ->> Kandidat_1: coap observe: /count
-Schiedsrichter ->> Kandidat_2: coap observe: /count
-Schiedsrichter ->> Kandidat_1: coap post: /start
-Schiedsrichter ->> Kandidat_2: coap post: /start
-loop Kandidat_1 pusup_count != 10 && Kandidat_2 pusup_count != 10
-    opt Kandidat_1 pushup detected
-        Kandidat_1 -> Kandidat_1: pushup_count += 1
-        Kandidat_1 ->> Schiedsrichter: notify /count changed
+Schiedsrichter ->> Spieler_1: coap put: /assign_color [red]
+Schiedsrichter ->> Spieler_2: coap put: /assign_color [green]
+Schiedsrichter ->> Spieler_1: coap observe: /count
+Schiedsrichter ->> Spieler_2: coap observe: /count
+Schiedsrichter ->> Spieler_1: coap post: /start
+Schiedsrichter ->> Spieler_2: coap post: /start
+loop Spieler_1 pusup_count != 10 && Spieler_2 pusup_count != 10
+    opt Spieler_1 pushup detected
+        Spieler_1 -> Spieler_1: pushup_count += 1
+        Spieler_1 ->> Schiedsrichter: notify /count changed
     end
-    opt Kandidat_2 pushup detected
-        Kandidat_2 -> Kandidat_2: pushup_count += 1
-        Kandidat_2 ->> Schiedsrichter: notify /count changed
+    opt Spieler_2 pushup detected
+        Spieler_2 -> Spieler_2: pushup_count += 1
+        Spieler_2 ->> Schiedsrichter: notify /count changed
     end
-    alt Kandidat_1 pusup_count == 10
-        Schiedsrichter ->> Kandidat_1: coap post: /set_to_winner
-        Schiedsrichter ->> Kandidat_2: coap post: /set_to_looser
-    else Kandidat_2 pushup_count == 10
-        Schiedsrichter ->> Kandidat_2: coap post: /set_to_winner
-        Schiedsrichter ->> Kandidat_1: coap post: /set_to_looser
+    alt Spieler_1 pusup_count == 10
+        Schiedsrichter ->> Spieler_1: coap post: /set_to_winner
+        Schiedsrichter ->> Spieler_2: coap post: /set_to_looser
+    else Spieler_2 pushup_count == 10
+        Schiedsrichter ->> Spieler_2: coap post: /set_to_winner
+        Schiedsrichter ->> Spieler_1: coap post: /set_to_looser
     end
 end
 @enduml
