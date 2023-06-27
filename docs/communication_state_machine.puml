@@ -1,5 +1,5 @@
 @startuml Kommunikation
-[*] --> Powered_On: Power On
+[*] --> Powered_On: Power on
 state Powered_On {
     Uninitialized : LED: Blue
     Counting_Pushups: LED: {color}
@@ -7,8 +7,9 @@ state Powered_On {
     Looser: LED: Off
 
     Uninitialized--> Counting_Pushups: coap: /assign_color_id {color}
+    Counting_Pushups --> Counting_Pushups: [Pushup detected]\n/ Notify "/count" changed
     Counting_Pushups --> Winner: coap: /set_to_winner
     Counting_Pushups --> Looser: coap: /set_to_looser
 }
-Powered_On --> [*]: Power Off
+Powered_On --> [*]: Power off
 @enduml
