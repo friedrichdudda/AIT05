@@ -3,8 +3,8 @@ title Liegestuetzerkennung
 [*] --> Counting_Pushups: sum = 0\ncnt = 0
 state Counting_Pushups {
     [*] --> Up
-    Up: **DO:**\nsum += read_acc()\ncnt++\nsleep(200ms)\n\n**EXIT:**\nled_blink()\npushup_count++\nnotify_count_observers()
-    Down: **DO:**\nsum += read_acc()\ncnt++\nsleep(200ms)
+    Up: **DO:**\nsum += read_acc()\ncnt++\nsleep(200ms)
+    Down: **DO:**\nsum += read_acc()\ncnt++\nsleep(200ms)\n\n**EXIT:**\nled_blink()\npushup_count++\nnotify_count_observers()
     Up -r-> Down: [sum < down_threshold]
     Down -l-> Up: [sum > up_threshold]
 }
