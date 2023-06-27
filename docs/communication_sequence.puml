@@ -9,8 +9,8 @@ Kandidat_1 -> Kandidat_1: discover Resource_Directory via multicast:\ncoap get: 
 &Kandidat_2 -> Kandidat_2: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
 Kandidat_1 ->> Resource_Directory: coap post: /register
 Kandidat_2 ->> Resource_Directory: coap post: /register
-Schiedsrichter -> Schiedsrichter: discover Resource_Directory via multicast:\ncoap get: /.well-known/core?rt=core.rd*
-Schiedsrichter -> Resource_Directory: coap get: /resource-lookup/?rt=pushups_player
+Schiedsrichter -> Schiedsrichter: discover\nResource_Directory\nvia multicast:\ncoap get:\n/.well-known/core\n?rt=core.rd*
+Schiedsrichter -> Resource_Directory: coap get: /endpoint-lookup/?rt=pushups_player
 activate Resource_Directory
 Resource_Directory --> Schiedsrichter: return registered "Kandidaten"
 deactivate Resource_Directory
