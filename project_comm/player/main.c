@@ -52,9 +52,9 @@ static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
                             size_t maxlen, coap_link_encoder_ctx_t *context);
 
 static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                        coap_request_ctx_t *ctx);
+                                     coap_request_ctx_t *ctx);
 static ssize_t _start_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                        coap_request_ctx_t *ctx);
+                              coap_request_ctx_t *ctx);
 static ssize_t _count_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                               coap_request_ctx_t *ctx);
 static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
@@ -64,7 +64,7 @@ static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                     coap_request_ctx_t *ctx);
 static ssize_t _reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                    coap_request_ctx_t *ctx);
+                              coap_request_ctx_t *ctx);
 
 /* CoAP resources. Must be sorted by path (ASCII order). */
 static const coap_resource_t _resources[] = {
@@ -124,13 +124,13 @@ void notify_count_observers(void)
 
     /* send Observe notification for /count */
     switch (gcoap_obs_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE,
-                           &_resources[1])) {
+                           &_resources[2])) {
     case GCOAP_OBS_INIT_OK:
         printf("Creating /count notification\n");
         coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
         len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
         len += fmt_u32_dec((char *)pdu.payload, pushup_count);
-        gcoap_obs_send(&buf[0], len, &_resources[1]);
+        gcoap_obs_send(&buf[0], len, &_resources[2]);
         break;
     case GCOAP_OBS_INIT_UNUSED:
         printf("No observer for /count\n");
@@ -169,7 +169,7 @@ static void set_led_color(led_color_t color)
 }
 
 static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                        coap_request_ctx_t *ctx)
+                                     coap_request_ctx_t *ctx)
 {
     (void)ctx;
 
@@ -184,7 +184,7 @@ static ssize_t _assign_color_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 }
 
 static ssize_t _start_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                      coap_request_ctx_t *ctx)
+                              coap_request_ctx_t *ctx)
 {
     (void)ctx;
 
@@ -265,7 +265,7 @@ static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 }
 
 static ssize_t _reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                    coap_request_ctx_t *ctx)
+                              coap_request_ctx_t *ctx)
 {
     (void)ctx;
 
@@ -305,9 +305,14 @@ static void run_pushup_detection(void)
     int start_value = res.val[2];
 
     while (true) {
+        if (reset) {
+            printf("PUSHUP_DETECTION_THREAD_YIELDS\n");
+            break;
+        }
         for (int i = 0; i < 150; i++) {
             if (reset) {
-                thread_yield();
+                printf("PUSHUP_DETECTION_THREAD_YIELDS\n");
+                break;
             }
 
             saul_reg_read(dev, &res);
@@ -351,6 +356,8 @@ static void run_pushup_detection(void)
         free(data_storage);
         printf("\n");
     }
+
+    thread_yield();
 }
 
 int main(void)
