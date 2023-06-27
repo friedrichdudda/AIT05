@@ -88,6 +88,19 @@ async def discover_players(rd_address: str):
         return player
 
 
+async def assign_player_colors(players: set[Player]):
+    protocol = await aiocoap.Context.create_client_context()
+
+    for player in players:
+        message = aiocoap.Message(
+            code=aiocoap.Code.PUT,
+            uri=f"coap://{player.host}/assign_color",
+            payload=f"{player.color.value}".encode("ascii"),
+        )
+
+        await protocol.request(message).response
+
+
 async def observe_players(players: set[Player]):
     protocol = await aiocoap.Context.create_client_context()
 
@@ -101,7 +114,7 @@ async def observe_players(players: set[Player]):
             )
         )[0]
 
-        player.count += 1
+        player.count = int(response.payload.decode("utf-8"))
 
         if pushup_count == WINNING_PUSHUP_COUNT:
             print(f"The winner is: {player.color.name} {player.host}")
@@ -166,7 +179,7 @@ async def start_game_cli(players: set[Player]):
         command = await ainput("")
 
         if command == "help":
-            print("Available commands: list | start | stats | reset")
+            print("Available commands: list | start | reset | stats")
 
         elif command == "list":
             print("Available players:")
@@ -174,12 +187,10 @@ async def start_game_cli(players: set[Player]):
                 print(f"{player.color.name} ({player.host})")
 
         elif command == "start":
-            # assign id to each player and start the game
             for player in players:
                 message = aiocoap.Message(
-                    code=aiocoap.Code.PUT,
-                    uri=f"coap://{player.host}/assign_color_id",
-                    payload=f"{player.color.value}".encode("ascii"),
+                    code=aiocoap.Code.POST,
+                    uri=f"coap://{player.host}/start",
                 )
 
                 await protocol.request(message).response
@@ -244,10 +255,7 @@ async def main():
         players = await discover_players(resource_directory_ip_address)
 
         if players:
-            # Print available player addresses
-            logging.log(logging.INFO, "Found players:")
-            for player in players:
-                logging.log(logging.INFO, player.host)
+            await assign_player_colors(players)
 
             # Start Game
             await asyncio.gather(
