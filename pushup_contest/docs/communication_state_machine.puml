@@ -1,15 +1,19 @@
 @startuml Kommunikation
-[*] --> Powered_On: Power on
-state Powered_On {
-    Uninitialized : LED: Blue
+title Kandidat Kommunikationsautomat
+[*] --> Uninitialized
+Uninitialized : LED: Blue
+Uninitialized--> Initialized: coap: /assign_color {color}
+state Initialized {
+    IDLE : LED: {color}
     Counting_Pushups: LED: {color}
     Winner: LED: Blinking [{color}, Off]
     Looser: LED: Off
 
-    Uninitialized--> Counting_Pushups: coap: /assign_color_id {color}
-    Counting_Pushups --> Counting_Pushups: [Pushup detected]\n/ Notify "/count" changed
+    [*] --> IDLE
+    IDLE --> Counting_Pushups: coap: /start
+    Counting_Pushups --> Counting_Pushups: Pushup detected\n/ Notify observers:\n"/count" changed
     Counting_Pushups --> Winner: coap: /set_to_winner
     Counting_Pushups --> Looser: coap: /set_to_looser
 }
-Powered_On --> [*]: Power off
+Initialized --> Initialized: coap: /reset
 @enduml

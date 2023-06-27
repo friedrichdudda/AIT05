@@ -1,4 +1,6 @@
 @startuml Kommunikation
+title System Kommunikationsablauf
+
 participant Kandidat_1
 participant Kandidat_2
 participant Resource_Directory
@@ -14,10 +16,12 @@ Schiedsrichter -> Resource_Directory: coap get: /endpoint-lookup/?rt=pushups_pla
 activate Resource_Directory
 Resource_Directory --> Schiedsrichter: return registered "Kandidaten"
 deactivate Resource_Directory
-Schiedsrichter ->> Kandidat_1: coap put: /assign_color_id [red]
-Schiedsrichter ->> Kandidat_2: coap put: /assign_color_id [green]
+Schiedsrichter ->> Kandidat_1: coap put: /assign_color [red]
+Schiedsrichter ->> Kandidat_2: coap put: /assign_color [green]
 Schiedsrichter ->> Kandidat_1: coap observe: /count
 Schiedsrichter ->> Kandidat_2: coap observe: /count
+Schiedsrichter ->> Kandidat_1: coap post: /start
+Schiedsrichter ->> Kandidat_2: coap post: /start
 loop Kandidat_1 pusup_count != 10 && Kandidat_2 pusup_count != 10
     opt Kandidat_1 pushup detected
         Kandidat_1 -> Kandidat_1: pushup_count += 1
