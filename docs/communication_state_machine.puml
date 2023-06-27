@@ -1,12 +1,14 @@
 @startuml Kommunikation
-Uninitialized : color: blue
-Team_Red: color: red
-Team_Green: color: green
-[*] --> Uninitialized
-Uninitialized--> Team_Red: assign_color_id [red]
-Uninitialized--> Team_Green: assign_color_id [green]
-Team_Red --> Winner: set_to_winner
-Team_Red --> Looser: set_to_looser
-Team_Green --> Winner: set_to_winner
-Team_Green --> Looser: set_to_looser
+[*] --> Powered_On: Power On
+state Powered_On {
+    Uninitialized : LED: Blue
+    Counting_Pushups: LED: {color}
+    Winner: LED: Blinking [{color}, Off]
+    Looser: LED: Off
+
+    Uninitialized--> Counting_Pushups: coap: /assign_color_id {color}
+    Counting_Pushups --> Winner: coap: /set_to_winner
+    Counting_Pushups --> Looser: coap: /set_to_looser
+}
+Powered_On --> [*]: Power Off
 @enduml
