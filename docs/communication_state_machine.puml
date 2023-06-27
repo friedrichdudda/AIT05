@@ -1,0 +1,12 @@
+@startuml Kommunikation
+Uninitialized : color: blue
+Team_Red: color: red
+Team_Green: color: green
+[*] --> Uninitialized
+Uninitialized--> Team_Red: assign_color_id [red]
+Uninitialized--> Team_Green: assign_color_id [green]
+Team_Red --> Winner: set_to_winner
+Team_Red --> Looser: set_to_looser
+Team_Green --> Winner: set_to_winner
+Team_Green --> Looser: set_to_looser
+@enduml
