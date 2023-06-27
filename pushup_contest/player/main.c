@@ -42,10 +42,15 @@ typedef enum {
 static uint32_t pushup_count = 0;
 static led_color_t player_color = 0;
 static bool reset = false;
+static bool game_finished = false;
 
 static void run_pushup_detection(void);
 void *pushup_detection_thread(void *arg);
 char pushup_detection_thread_stack[THREAD_STACKSIZE_MAIN];
+
+static void run_led_blink(void);
+void *led_blink_thread(void *arg);
+char led_blink_thread_stack[THREAD_STACKSIZE_MAIN];
 
 
 static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
@@ -191,6 +196,7 @@ static ssize_t _start_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     printf("COAP: Start\n");
 
     reset = false;
+    game_finished = false;
 
     /* run pushup detection in its own thread */
     thread_create(pushup_detection_thread_stack, sizeof(pushup_detection_thread_stack),
@@ -222,16 +228,12 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 
     printf("COAP: Set to winner\n");
 
-    thread_create(pushup_detection_thread_stack, sizeof(pushup_detection_thread_stack),
+    /* run led blinking in its own thread */
+    thread_create(led_blink_thread_stack, sizeof(led_blink_thread_stack),
                   THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
-                  pushup_detection_thread, NULL, "pushup_detection_thread");
+                  led_blink_thread, NULL, "led_blink_thread");
 
-    while (!reset) {
-        set_led_color(LED_COLOR_OFF);
-        xtimer_msleep(200);
-        set_led_color(player_color);
-        xtimer_msleep(200);
-    }
+    game_finished = true;
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
@@ -239,9 +241,12 @@ static ssize_t _set_to_winner_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 static ssize_t _set_to_looser_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                       coap_request_ctx_t *ctx)
 {
-    printf("COAP: Set to looser\n");
     (void)ctx;
+
+    printf("COAP: Set to looser\n");
     set_led_color(LED_COLOR_OFF);
+
+    game_finished = true;
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
 }
@@ -250,6 +255,7 @@ static ssize_t _fake_pushup_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                     coap_request_ctx_t *ctx)
 {
     (void)ctx;
+
     printf("COAP: Fake pushup\n");
 
     set_led_color(LED_COLOR_OFF);
@@ -271,10 +277,36 @@ static ssize_t _reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 
     reset = true;
     pushup_count = 0;
+    set_led_color(player_color);
 
     notify_count_observers();
 
     return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
+}
+
+void *led_blink_thread(void *arg)
+{
+    printf("Started pushup detection thread\n");
+    (void)arg;
+
+    run_led_blink();
+
+    return NULL;
+}
+
+static void run_led_blink(void)
+{
+    printf("Started led blinking\n");
+
+    while (!reset) {
+        set_led_color(LED_COLOR_OFF);
+        xtimer_msleep(200);
+        set_led_color(player_color);
+        xtimer_msleep(200);
+    }
+
+    printf("LED_BLINK_THREAD_YIELDS\n");
+    thread_yield();
 }
 
 void *pushup_detection_thread(void *arg)
@@ -304,14 +336,9 @@ static void run_pushup_detection(void)
 
     int start_value = res.val[2];
 
-    while (true) {
-        if (reset) {
-            printf("PUSHUP_DETECTION_THREAD_YIELDS\n");
-            break;
-        }
+    while (!reset && !game_finished) {
         for (int i = 0; i < 150; i++) {
-            if (reset) {
-                printf("PUSHUP_DETECTION_THREAD_YIELDS\n");
+            if (reset || game_finished) {
                 break;
             }
 
@@ -357,6 +384,7 @@ static void run_pushup_detection(void)
         printf("\n");
     }
 
+    printf("PUSHUP_DETECTION_THREAD_YIELDS\n");
     thread_yield();
 }
 
